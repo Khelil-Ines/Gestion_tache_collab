@@ -1,0 +1,23 @@
+version: '3'
+services:
+  server:
+    image: node:18-alpine
+    working_dir: /app
+    command: sh -c "cd server && npm install && npm run dev"
+    volumes:
+      - ./server:/app/server
+    ports:
+      - "5000:5000"
+    environment:
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+  client:
+    image: node:18-alpine
+    working_dir: /app
+    command: sh -c "cd client && npm install && npm run dev"
+    volumes:
+      - ./client:/app/client
+    ports:
+      - "3000:3000"
+    depends_on:
+      - server
