@@ -27,7 +27,7 @@ export default function LoginForm() {
         return;
       }
 
-      router.replace("dashboard");
+      router.replace("http://localhost:3000/dashboard");
     } catch (error) {
       console.log(error);
     }

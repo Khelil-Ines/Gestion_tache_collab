@@ -7,6 +7,7 @@ export const authOptions = {
     CredentialsProvider({
       name: "credentials",
       credentials: {},
+    
 
       async authorize(credentials) {
         try {
@@ -14,20 +15,22 @@ export const authOptions = {
                 email: credentials.email,
                 password: credentials.password,
               });
-
-              if (response.status === 201) {
+              if (response.status === 200) {
                 const user = {
-                  email: credentials.email,
+                  email: credentials.email, 
+                  firstname: response.data.firstname, 
+                  role: response.data.role,
                   accessToken: response.data.token,
                 };
-              
+                console.log("Authentication successful. Server response:", response.data);
                 return user;
               } else {
-
+                console.log("Authentication failed. Server response:", response.data);
                 return null;
               }
         } catch (error) {
-          console.log("Error: ", error);
+          console.log("Error during authentication:", error);
+
         }
       },
     }),
