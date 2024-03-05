@@ -1,16 +1,17 @@
-import LoginForm from "@/components/LoginForm";
-import { getServerSession } from "next-auth";
-import { redirect } from "next/navigation";
-import { authOptions } from "./api/auth/[...nextauth]/route";
+import Link from 'next/link';
 
 export default async function Home() {
-  const session = await getServerSession(authOptions);
 
-  if (session) redirect("/dashboard");
 
   return (
-    <main>
-      <LoginForm />
-    </main>
+    <div >
+      <h1>Hello !</h1>
+      <p>Welcome to TACHETY App.</p>
+      <Link href="/login">
+      
+          <button>Login</button>
+      
+      </Link>
+      </div>
   );
 }
