@@ -6,11 +6,10 @@ const userSchema =  mongoose.Schema({
     lastname : {type: String},
     firstname : {type: String},
     role: { type: String,
-            enum : ["user","admin"],
-            default: 'admin'
-    }
+            enum : ["developer","manager","collaborator"],
+            default: 'manager'
+    },
+    photo:{type: String}
 })
 
-
- 
 module.exports = mongoose.model("User", userSchema)
