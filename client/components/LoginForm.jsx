@@ -68,6 +68,7 @@ export default function LoginForm() {
     event.preventDefault();
   };
   return (
+
     <DefaultLayout>
       <Breadcrumb pageName="Sign In" />
 
@@ -214,6 +215,7 @@ export default function LoginForm() {
                   />
                 </svg>
               </span>
+
             </div>
           </div>
 

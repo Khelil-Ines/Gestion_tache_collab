@@ -103,6 +103,7 @@ export default function RegisterForm() {
     event.preventDefault();
   };
   return (
+
     <DefaultLayout>
       <Breadcrumb pageName="Sign Up" />
 
@@ -248,6 +249,7 @@ export default function RegisterForm() {
                   />
                 </svg>
               </span>
+
             </div>
           </div>
 
