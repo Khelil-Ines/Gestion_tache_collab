@@ -25,18 +25,20 @@ app.use((req, res, next) => {
   next();
 });
 
+
+
 mongoose
-  // .connect(
-  //   `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.afeysny.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0` ,
-  //   { useNewUrlParser : true, useUnifiedTopology: true } )
-  //   .then(() => console.log("Connexion a MongoDB réussie !"))
-  // .catch((e) => console.log("Connexion a MongoDB échouée!", e));
-mongoose.connect("mongodb://127.0.0.1:27017/TACHETY"
+  .connect(
+    `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.afeysny.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority&appName=Cluster0`  )
+  .then(() => console.log("Connexion a MongoDB réussie !"))
+  .catch((e) => console.log("Connexion a MongoDB échouée!", e));
+
+const mongoDBUri = 'mongodb://127.0.0.1:27017/TACHETY';
+mongoose.connect(mongoDBUri
+
 ).then(() => console.log("connexion a MongoDB reussie!"))
 .catch((e) => console.log("connexion a MongoDB échouée!",e))
-app.get("/", (req, res) => {
-  res.json({ message: "Hello World!" });
-});
+
 
 app.use("/", userRouter)
 app.use("/project", projectRouter)
