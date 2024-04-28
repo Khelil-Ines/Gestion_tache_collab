@@ -9,7 +9,12 @@ const userSchema =  mongoose.Schema({
             enum : ["developer","manager","collaborator"],
             default: 'manager'
     },
-    photo:{type: String}
+    photo:{type: String},
+    projects: [{
+        type: mongoose.Types.ObjectId,
+        ref: 'Project',
+        required: false
+    }]
 })
 
 module.exports = mongoose.model("User", userSchema)

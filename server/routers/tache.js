@@ -6,9 +6,12 @@ router.get("/:id",TacheController.fetchTache)
 
 router.patch("/:id", TacheController.updateTache)
 
-router.post("/add", TacheController.addTache);
+router.post("/add/:id", TacheController.addTache);
 
 router.delete("/:id", TacheController.deleteTache);
+
+router.post('/uploadfile/:id', TacheController.uploadFile);
+
 
 
 module.exports = router;

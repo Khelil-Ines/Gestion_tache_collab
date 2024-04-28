@@ -5,6 +5,7 @@ const mongoose = require("mongoose");
 const userRouter=require("./routers/user")
 const projectRouter=require("./routers/project")
 const tacheRouter=require("./routers/tache")
+const columnRouter=require("./routers/column")
 
 const cors = require('cors');
 
@@ -40,5 +41,7 @@ app.get("/", (req, res) => {
 app.use("/", userRouter)
 app.use("/project", projectRouter)
 app.use("/tache", tacheRouter)
+app.use("/column", columnRouter)
+
 
 module.exports = app;

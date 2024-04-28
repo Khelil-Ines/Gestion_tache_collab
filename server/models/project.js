@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const projectSchema = mongoose.Schema({
     model :{ type : String, enum: ["Kanban", "Scrum"], required: true},
-    nom : { type : String, required: false},
+    nom : { type : String, required: true},
     etat :{type : String,  enum: ["In progress","Done"] , required: false},
     completion : {type:Number,default:false},
     membres: [{
@@ -17,11 +17,11 @@ const projectSchema = mongoose.Schema({
             default: 'developer'
         }
     }],
-    taches: {
+    columns: [{
         type: mongoose.Types.ObjectId,
-        ref: 'Tache',
+        ref: 'Column',
         required: false,
-      },
+    }],
     createdAt: { type: Date, default: () => moment().toDate() },
 });
 

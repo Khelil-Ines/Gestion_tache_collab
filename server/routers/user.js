@@ -5,8 +5,9 @@ const auth=require('../middleware/auth')
 
 router.post("/signup", userController.signup);
 router.patch('/users/profile', auth.loggedMiddleware, userController.updateUserProfile);
+router.get("/projects", auth.loggedMiddleware, userController.projectsUser);
 router.post("/login", userController.login);
 router.get("/getU", userController.getUser);
-
+router.get("/:id",userController.fetchUser);
 
 module.exports = router;

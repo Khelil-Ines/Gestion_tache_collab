@@ -7,7 +7,11 @@ const addProject = async (req, res, next) => {
     try {
       const projectData = req.body;
       const userId = req.auth.userId;
-
+      const user = await User.findById(userId);
+      if(!user){
+        return res.status(400).json({
+          message: "Utilisateur non touvé"})
+      };
       projectData.createdAt = moment().tz('Europe/Paris').toDate();
   
       const newProject= new Project(projectData);
@@ -15,6 +19,9 @@ const addProject = async (req, res, next) => {
         utilisateur: userId,
         role: "manager",
     });
+    
+    user.projects.push(newProject._id); 
+        await user.save();
       newProject.save()
         .then(projet => {
           res.json(projet);
@@ -131,7 +138,8 @@ const inviteUserToProject = async (req, res, next) => {
 
         // Ajouter l'utilisateur en tant que membre avec le rôle spécifié
         project.membres.push({ utilisateur: invitedUser._id, role });
-
+        invitedUser.projects.push(project._id);
+        await invitedUser.save();
         await project.save();
 
         res.json({ message: "Utilisateur invité avec succès au projet" });
@@ -141,6 +149,56 @@ const inviteUserToProject = async (req, res, next) => {
     }
 };
 
+const removeMemberFromProject = async (req, res) => {
+  try {
+      const { projectId, memberId } = req.params;
+
+      // Recherche le projet par ID
+      const project = await Project.findById(projectId);
+      if (!project) {
+          console.error("Projet non trouvé.");
+          return res.status(404).json({ erreur: "Projet non trouvé." });
+      }
+
+      // Vérifie si le membre à supprimer est associé au projet
+      const memberIndex = project.membres.findIndex(member => member.utilisateur.toString() === memberId);
+      if (memberIndex === -1) {
+          console.error("Membre non trouvé dans le projet.");
+          return res.status(404).json({ erreur: "Membre non trouvé dans le projet." });
+      }
+
+      // Supprime le membre du tableau des membres
+      project.membres.splice(memberIndex, 1);
+
+      // Enregistre les modifications apportées au projet
+      await project.save();
+
+      res.json({ message: "Membre supprimé avec succès du projet." });
+  } catch (error) {
+      console.error('Erreur lors de la suppression du membre du projet :', error);
+      res.status(500).json({ erreur: 'Erreur lors de la suppression du membre du projet', message: error.message });
+  }
+};
+const getMembersOfProject = async (req, res) => {
+  try {
+    const { projectId, memberId } = req.params;
+
+    // Recherche le projet par ID
+    const project = await Project.findById(projectId);
+    if (!project) {
+        console.error("Projet non trouvé.");
+        return res.status(404).json({ erreur: "Projet non trouvé." });
+    }
+    // Récupère les membres du projet
+    const members = project.membres;
+    // Envoie la réponse
+    res.json(members);
+  } catch (error) {
+    console.error('Erreur lors de la suppression du membre du projet :', error);
+    res.status(500).json({ erreur: 'Erreur lors de la suppression du membre du projet', message: error.message });
+}
+};
+
 
   module.exports = {
     addProject,
@@ -148,5 +206,7 @@ const inviteUserToProject = async (req, res, next) => {
     fetchProject,
     updateProject,
     deleteProject,
-    inviteUserToProject
+    inviteUserToProject,
+    removeMemberFromProject,
+    getMembersOfProject
     }

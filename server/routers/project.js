@@ -13,4 +13,10 @@ router.delete("/:id", ProjectController.deleteProject);
 
 router.post("/invite/:projectId", ProjectController.inviteUserToProject);
 
+router.delete('/:projectId/members/:memberId', ProjectController.removeMemberFromProject);
+
+router.get("/:projectId/members",ProjectController.getMembersOfProject);
+
+
+
 module.exports = router;

@@ -104,3 +104,52 @@ exports.getUser = (req, res) => {
       res.status(500).json({ error: 'Erreur lors de la mise à jour de la photo de profil de l\'utilisateur', message: error.message });
     }
   };
+
+  exports.fetchUser = (req, res) => {
+    User.findOne({ _id: req.params.id })
+    .then((user) => {
+      if (!user) {
+        res.status(404).json({
+          message: "User non trouvé!",
+        });
+      } else {
+        res.status(200).json({
+          model: user,
+          message: "User trouvé!",
+        });
+      }
+    })
+    .catch(() => {
+      res.status(400).json({
+        error: Error.message,
+        message: "Données invalides!",
+      });
+    });
+};
+exports.projectsUser  = async (req, res) => { 
+  try {
+    const userId = req.auth.userId;
+
+    const user = await User.findOne({ _id: userId }).populate('projects');
+
+    // Vérifie si l'utilisateur a été trouvé
+    if (!user) {
+        return res.status(404).json({
+            message: "Utilisateur non trouvé."
+        });
+    }
+
+    // Renvoie les projets de l'utilisateur
+    res.status(200).json({
+        projects: user.projects,
+        message: "Projets récupérés avec succès.",
+    });
+} catch (error) {
+    console.error("Erreur lors de la récupération des projets de l'utilisateur :", error);
+    res.status(500).json({
+        error: error.message,
+        message: "Problème lors de l'extraction des projets de l'utilisateur.",
+    });
+}
+};
+
