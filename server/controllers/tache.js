@@ -5,7 +5,7 @@ const moment = require('moment-timezone');
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-      cb(null, 'uploads/') // Spécifie le dossier où les fichiers seront stockés
+      cb(null, 'uploads/files') // Spécifie le dossier où les fichiers seront stockés
   },
   filename: function (req, file, cb) {
       // Génère un nom de fichier unique pour éviter les collisions
@@ -143,14 +143,8 @@ const deleteTache = (req, res) => {
                 tache.file = [];
             }
 
-            // Crée un objet TacheFile avec les détails du fichier
-            const tacheFile = {
-                nom: req.file.originalname,
-                chemin: req.file.path
-            };
-
             // Ajoute le fichier à la liste des fichiers de la tâche
-            tache.file.push(tacheFile);
+            tache.file.push(req.file.path);
 
             // Enregistre les modifications dans la base de données
             await tache.save();

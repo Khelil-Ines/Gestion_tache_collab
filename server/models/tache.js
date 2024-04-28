@@ -9,7 +9,7 @@ const tacheSchema = mongoose.Schema({
       required: true,
     },
     createdAt: { type: Date, default: () => moment().toDate() },
-    file:{type: String},
+    file: [{ type: String }],
     date_limite:{type :Date, required:false},
 
 });
