@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function RegisterForm() {
-    const [firstname, setFirstname] = useState("");
+  const [firstname, setFirstname] = useState("");
   const [lastname, setLastname] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -57,7 +57,7 @@ export default function RegisterForm() {
 
   return (
     <div className="grid place-items-center h-screen">
-      <div className="shadow-lg p-5 rounded-lg border-t-4 border-green-400">
+      <div className="shadow-lg p-5 rounded-lg border-t-4 border-blue-400">
         <h1 className="text-xl font-bold my-4">Register</h1>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
@@ -65,23 +65,33 @@ export default function RegisterForm() {
             onChange={(e) => setFirstname(e.target.value)}
             type="text"
             placeholder="First Name"
+            data-testid="firstname"
+            data-cy="error-first-name"
           />
           <input
             onChange={(e) => setLastname(e.target.value)}
             type="text"
             placeholder="Last Name"
+            data-testid="lastname"
+            data-cy="error-last-name"
           />
           <input
             onChange={(e) => setEmail(e.target.value)}
             type="text"
             placeholder="Email"
+            data-testid="email"
+            data-cy="error-email"
+
           />
           <input
             onChange={(e) => setPassword(e.target.value)}
             type="password"
             placeholder="Password"
+            data-testid="password"
+            data-cy="error-password"
           />
-          <button className="bg-green-600 text-white font-bold cursor-pointer px-6 py-2">
+          <button type="submit" data-testid="submit-button"
+          className="bg-blue-600 text-white font-bold cursor-pointer px-6 py-2">
             Register
           </button>
 
