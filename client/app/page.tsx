@@ -1,10 +1,13 @@
 import Link from 'next/link';
+import DefaultLayout from "@/components/Layouts/simple";
+import "@/css/style.css";
 
 export default async function Home() {
 
 
   return (
-    <div >
+    <DefaultLayout>
+   <div >
       <h1>Hello !</h1>
       <p>Welcome to TACHETY App.</p>
       <Link href="/login">
@@ -13,5 +16,7 @@ export default async function Home() {
       
       </Link>
       </div>
+    </DefaultLayout>
+ 
   );
 }

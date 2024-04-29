@@ -1,14 +1,64 @@
+// "use client";
+
+// import { signOut } from "next-auth/react";
+// import { useSession } from "next-auth/react";
+
+// export default function Dashboard() {
+//   const { data: session } = useSession();
+//   console.log("Session object:", session);
+
+//   return (
+//     <div className="grid place-items-center h-screen">
+//       <div className="shadow-lg p-8 bg-zince-300/10 flex flex-col gap-2 my-6">
+//         <div>
+//           Name: <span className="font-bold">{session?.user?.firstname}</span>
+//         </div>
+//         <div>
+//           Email: <span className="font-bold">{session?.user?.email}</span>
+//         </div>
+//         <div>
+//           Role: <span className="font-bold">{session?.user?.role}</span>
+//         </div>
+//         <button
+//           onClick={() => signOut()}
+//           className="bg-red-500 text-white font-bold px-6 py-2 mt-3"
+//         >
+//           Log Out
+//         </button>
+//       </div>
+//     </div>
+//   );
+// }
+
 "use client";
 import React from "react";
-import ChartOne from "../Charts/ChartOne";
-import ChartThree from "../Charts/ChartThree";
-import ChartTwo from "../Charts/ChartTwo";
-import ChatCard from "../Chat/ChatCard";
-import TableOne from "../Tables/TableOne";
 import CardDataStats from "../CardDataStats";
-import MapOne from "../Maps/MapOne";
+import dynamic from "next/dynamic";
 
-const ECommerce: React.FC = () => {
+const ChatCard = dynamic(() => import('../Chat/ChatCard'), {
+  ssr: false, // This will only render the component on the client-side
+});
+
+const TableOne = dynamic(() => import('../Tables/TableOne'), {
+  ssr: false, // This will only render the component on the client-side
+});
+
+const MapOne = dynamic(() => import('../Maps/MapOne'), {
+  ssr: false, // This will only render the component on the client-side
+});
+
+const ChartOne = dynamic(() => import('../Charts/ChartOne'), {
+  ssr: false, // This will only render the component on the client-side
+});
+
+const ChartTwo = dynamic(() => import('../Charts/ChartTwo'), {
+  ssr: false, // This will only render the component on the client-side
+});
+
+const ChartThree = dynamic(() => import('../Charts/ChartThree'), {
+  ssr: false, // This will only render the component on the client-side
+});
+const Dashboard: React.FC = () => {
   return (
     <>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-4 2xl:gap-7.5">
@@ -112,4 +162,4 @@ const ECommerce: React.FC = () => {
   );
 };
 
-export default ECommerce;
+export default Dashboard;
