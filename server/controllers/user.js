@@ -52,10 +52,16 @@ exports.login = (req, res, next) => {
                 error: "login ou mot de passe incorrecte !",
               });
             }
+            const token = jwt.sign(
+              { userId: user._id }, 
+              "RANDOM_TOKEN_SECRET", 
+              { expiresIn: "24h" }
+            );
+            // Include firstname and lastname in the successful response
             res.status(200).json({
-              token: jwt.sign({ userId: user._id }, "RANDOM_TOKEN_SECRET", {
-                expiresIn: "24h",
-              }),
+              token: token,
+              firstname: user.firstname, // assuming the user object has a firstname
+              lastname: user.lastname    // assuming the user object has a lastname
             });
           })
           .catch((error) => res.status(500).json({ error: error.message }));
