@@ -5,9 +5,8 @@ import DefaultLayout from "@/components/Layouts/DefaultLayout";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Next.js Profile | TailAdmin - Next.js Dashboard Template",
-  description:
-    "This is Next.js Profile page for TailAdmin - Next.js Tailwind CSS Admin Dashboard Template",
+  title: "TÂCHETY",
+  description: "Collaborative App",
 };
 
 const Profile = () => {
@@ -69,9 +68,9 @@ const Profile = () => {
           </div>
           <div className="px-4 pb-6 text-center lg:pb-8 xl:pb-11.5">
             <div className="relative z-30 mx-auto -mt-22 h-30 w-full max-w-30 rounded-full bg-white/20 p-1 backdrop-blur sm:h-44 sm:max-w-44 sm:p-3">
-              <div className="relative drop-shadow-2">
+              <div className="relative drop-shadow-2 rounded-full overflow-hidden">
                 <Image
-                  src={"/images/user/user-06.png"}
+                  src={"/images/user/user-00.jpg"}
                   width={160}
                   height={160}
                   style={{
@@ -116,25 +115,25 @@ const Profile = () => {
             </div>
             <div className="mt-4">
               <h3 className="mb-1.5 text-2xl font-semibold text-black dark:text-white">
-                Danish Heilium
+                Ines Aya
               </h3>
-              <p className="font-medium">Ui/Ux Designer</p>
+              <p className="font-medium">InesAya@gmail.com</p>
               <div className="mx-auto mb-5.5 mt-4.5 grid max-w-94 grid-cols-3 rounded-md border border-stroke py-2.5 shadow-1 dark:border-strokedark dark:bg-[#37404F]">
                 <div className="flex flex-col items-center justify-center gap-1 border-r border-stroke px-4 dark:border-strokedark xsm:flex-row">
                   <span className="font-semibold text-black dark:text-white">
-                    259
+                    0
                   </span>
                   <span className="text-sm">Posts</span>
                 </div>
                 <div className="flex flex-col items-center justify-center gap-1 border-r border-stroke px-4 dark:border-strokedark xsm:flex-row">
                   <span className="font-semibold text-black dark:text-white">
-                    129K
+                    0
                   </span>
                   <span className="text-sm">Followers</span>
                 </div>
                 <div className="flex flex-col items-center justify-center gap-1 px-4 xsm:flex-row">
                   <span className="font-semibold text-black dark:text-white">
-                    2K
+                    0
                   </span>
                   <span className="text-sm">Following</span>
                 </div>

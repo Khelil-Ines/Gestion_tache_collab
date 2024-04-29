@@ -30,10 +30,13 @@ export default function RegisterForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+ 
+
     if (!firstname || !lastname || !email || !password) {
       setError("All fields are necessary.");
       return;
     }
+  
 
     try {
       const res = await fetch("/api/register", {
@@ -45,22 +48,23 @@ export default function RegisterForm() {
           firstname,
           lastname,
           email,
-          password,
+          password
         }),
       });
 
       if (res.ok) {
+     
         const form = e.target;
         form.reset();
-        router.push("/");
+        router.push("/login");
       } else {
         const errorData = await res.json();
         if (errorData.user) {
           console.log("User registration failed:", errorData.user);
           setError("User registration failed: " + errorData.user);
         } else {
-          console.log("User registration failed. No user data available.");
-          setError("User registration failed. No user data available.");
+          console.log("User registration failed. User already registred.");
+          setError("User registration failed. User already registred.");
         }
       }
     } catch (error) {
@@ -111,7 +115,7 @@ export default function RegisterForm() {
         <div className="flex flex-wrap items-center">
           <div className="hidden w-full xl:block xl:w-1/2">
             <div className="px-26 py-17.5 text-center">
-              <div className="flex items-center ml-60">
+              <div className="flex items-center justify-center">
                 <Image
                   className="mb-5.5 mr-0.5 inline-block"
                   src={"/images/logo_tachety.png"}
@@ -120,8 +124,8 @@ export default function RegisterForm() {
                   height={32}
                 />
                 <p className=" font-bold text-black dark:text-white sm:text-xl">
-                  {" "}
-                  TACHETY
+                  {/* {" "} */}
+                  TÂCHETY
                 </p>
               </div>
 
@@ -257,7 +261,7 @@ export default function RegisterForm() {
             <div className="w-full p-4 sm:p-12.5 xl:p-17.5">
               <span className="mb-1.5 block font-medium">Start for free</span>
               <h2 className="mb-9 text-2xl font-bold text-black dark:text-white sm:text-title-xl2">
-                Sign Up to TACHETY
+                Sign Up to TÂCHETY
               </h2>
 
               <form onSubmit={(e) => handleSubmit(e)}>
@@ -297,7 +301,6 @@ export default function RegisterForm() {
                   
                   <div className="relative mb-4">
                   <TextField
-                    autoFocus
                     fullWidth
                     id="lastname"
                     label="Last Name"
@@ -330,7 +333,6 @@ export default function RegisterForm() {
 
                 <div className="relative mb-4">
                   <TextField
-                    autoFocus
                     fullWidth
                     id="email"
                     label="Email"
@@ -356,12 +358,15 @@ export default function RegisterForm() {
                   </span>
                 </div>
 
-                <FormControl fullWidth>
+                <FormControl fullWidth className="mb-6">
         <InputLabel htmlFor="auth-login-password">Password</InputLabel>
         <OutlinedInput
           id="auth-login-password"
           value={values.password}
-          onChange={handleChange('password')}
+          onChange={(e) => {
+            handleChange('password')(e); 
+            setPassword(e.target.value);
+          }}
           type={values.showPassword ? 'text' : 'password'}
           endAdornment={
             <InputAdornment position="end">
@@ -379,7 +384,7 @@ export default function RegisterForm() {
         />
       </FormControl>
 
-      <FormControl fullWidth className="mb-6">
+      <FormControl fullWidth className="mb-4">
         <InputLabel htmlFor="confirm-password">Confirm Password</InputLabel>
         <OutlinedInput
           id="confirm-password"
@@ -402,11 +407,17 @@ export default function RegisterForm() {
         />
       </FormControl>
 
-      {error && <div className="text-red-600">{error}</div>}
+      {/* {error && ( <div className="bg-red text-white p-4 rounded-lg mt-4">
+                    {error}
+                    </div>
+                   ) } */}
                 
 
                 <div>
-                  {error && <div className="inline-block mt-4 bg-red-600 text-white p-4 rounded-lg">{error}</div>}
+                {error && ( <div className="bg-red text-white p-4 rounded-lg mt-4">
+                    {error}
+                    </div>
+                   ) }
                 </div>
                 <button
                   type="submit"

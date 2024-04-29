@@ -12,9 +12,9 @@ export default function DefaultLayout({
   return (
     <>
       {/* <!-- ===== Page Wrapper Start ===== --> */}
-      <div className="flex h-screen overflow-hidden">
+      <div className="flex h-screen overflow-hidden bg-gray-100 dark:bg-gray-900">
 
-      <div className="fixed top-0 left-0 h-screen w-screen flex items-center justify-center bg-white-300 dark:bg-gray-800">
+      <div className="flex-1 overflow-y-auto">
 
 
         {/* <!-- ===== Content Area Start ===== --> */}
@@ -22,8 +22,8 @@ export default function DefaultLayout({
        
 
           {/* <!-- ===== Main Content Start ===== --> */}
-          <main>
-            <div className="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
+          <main className="relative">
+            <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
               {children}
             </div>
           </main>
@@ -33,7 +33,14 @@ export default function DefaultLayout({
       </div>
       {/* <!-- ===== Page Wrapper End ===== --> */}
       </div>
-
+      <style jsx>{`
+        main {
+          min-height: 100vh; // Ensures it fills the viewport height
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        }
+      `}</style>
     </>
   );
 }

@@ -67,6 +67,8 @@ export default function LoginForm() {
   const handleMouseDownPassword = (event) => {
     event.preventDefault();
   };
+
+  
   return (
 
     <DefaultLayout>
@@ -76,7 +78,7 @@ export default function LoginForm() {
         <div className="flex flex-wrap items-center">
           <div className="hidden w-full xl:block xl:w-1/2">
             <div className="px-26 py-17.5 text-center">
-              <div className="flex items-center ml-60">
+              <div className="flex items-center justify-center">
                 <Image
                   className="mb-5.5 mr-0.5 inline-block" 
                   src={"/images/logo_tachety.png"}
@@ -85,13 +87,13 @@ export default function LoginForm() {
                   height={32}
                 />
                 <p className=" font-bold text-black dark:text-white sm:text-xl">
-                  {" "}
+                  {/* {" "} */}
              
-                  TACHETY
+                  TÂCHETY
                 </p>
               </div>
 
-              <p className="2xl:px-20">Welcome to TACHETY ! 👋🏻</p>
+              <p className="2xl:px-20">Welcome to TÂCHETY ! 👋🏻</p>
 
               <span className="mt-15 inline-block">
                 <svg
@@ -223,7 +225,7 @@ export default function LoginForm() {
             <div className="w-full p-4 sm:p-12.5 xl:p-17.5">
               <span className="mb-1.5 block font-medium">Start for free</span>
               <h2 className="mb-9 text-2xl font-bold text-black dark:text-white sm:text-title-xl2">
-                Sign In to TACHETY !
+                Sign In to TÂCHETY !
               </h2>
 
               <form onSubmit={(e) => handleSubmit(e)}>
@@ -308,7 +310,10 @@ export default function LoginForm() {
                   </svg>
                 </span>
                 <div>
-                  {error && <div className="inline-block mt-4 bg-red-600 text-white p-4 rounded-lg">{error}</div>}
+                  {error && ( <div className="bg-red text-white p-4 rounded-lg mt-4">
+                    {error}
+                    </div>
+                   ) }
                 </div>
                 <button
                   type="submit"
