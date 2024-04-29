@@ -12,6 +12,8 @@ router.delete("/:id", TacheController.deleteTache);
 
 router.post('/uploadfile/:id', TacheController.uploadFile);
 
+router.post('/:tacheId/move/:targetColumnId', TacheController.moveTacheToColumn);
+
 
 
 module.exports = router;

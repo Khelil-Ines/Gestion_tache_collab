@@ -91,7 +91,7 @@ const addProject = async (req, res, next) => {
       )
 }
 const deleteProject = (req, res) => {
-    Project.deleteOne({ _id: req.params.id })
+    Project.deleteOne({ _id: req.params.projectId })
       .then((result) => {
         if (result.deletedCount === 0) {
           res.status(404).json({
