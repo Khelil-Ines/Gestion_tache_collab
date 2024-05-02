@@ -30,6 +30,12 @@ const DropdownUser = () => {
   // });
 
   // close if the esc key is pressed
+  console.log('session: ', session)
+  console.log('lastname: ', session?.user.lastname)
+  console.log('lastname: ', session?.lastname)
+  console.log('lastname: ', session?.accessToken.lastname)
+
+
   useEffect(() => {
     const keyHandler = ({ keyCode }: KeyboardEvent) => {
       if (!dropdownOpen || keyCode !== 27) return;
@@ -51,9 +57,9 @@ if (session){
           <>
             <span className="hidden text-right lg:block">
               <span className="block text-sm font-medium text-black dark:text-white">
-                {session.user.firstname || 'User'}
+                {session.user?.firstname || 'User'}
                 {' '}
-                {session.user.lastname || 'User'}
+                {session.user?.lastname || 'User'}
               </span>
               <span className="block text-xs">{session.user.email || 'No email'}</span>
             </span>
