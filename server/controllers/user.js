@@ -132,30 +132,63 @@ exports.getUser = (req, res) => {
       });
     });
 };
-exports.projectsUser  = async (req, res) => { 
+// exports.projectsUser  = async (req, res) => { 
+//   try {
+//     const userId = req.auth.userId;
+
+//     const user = await User.findOne({ _id: userId }).populate('projects');
+
+//     // Vérifie si l'utilisateur a été trouvé
+//     if (!user) {
+//         return res.status(404).json({
+//             message: "Utilisateur non trouvé."
+//         });
+//     }
+
+//     // Renvoie les projets de l'utilisateur
+//     res.status(200).json({
+//         projects: user.projects,
+//         message: "Projets récupérés avec succès.",
+//     });
+// } catch (error) {
+//     console.error("Erreur lors de la récupération des projets de l'utilisateur :", error);
+//     res.status(500).json({
+//         error: error.message,
+//         message: "Problème lors de l'extraction des projets de l'utilisateur.",
+//     });
+// }
+// };
+
+exports.projectsUser = async (req, res) => {
+  if (!req.auth || !req.auth.userId) {
+      return res.status(400).json({
+          success: false,
+          message: "Invalid authentication credentials."
+      });
+  }
+
   try {
-    const userId = req.auth.userId;
+      const userId = req.auth.userId;
+      const user = await User.findOne({ _id: userId }).populate('projects');
 
-    const user = await User.findOne({ _id: userId }).populate('projects');
+      if (!user) {
+          return res.status(404).json({
+              success: false,
+              message: "Utilisateur non trouvé."
+          });
+      }
 
-    // Vérifie si l'utilisateur a été trouvé
-    if (!user) {
-        return res.status(404).json({
-            message: "Utilisateur non trouvé."
-        });
-    }
-
-    // Renvoie les projets de l'utilisateur
-    res.status(200).json({
-        projects: user.projects,
-        message: "Projets récupérés avec succès.",
-    });
-} catch (error) {
-    console.error("Erreur lors de la récupération des projets de l'utilisateur :", error);
-    res.status(500).json({
-        error: error.message,
-        message: "Problème lors de l'extraction des projets de l'utilisateur.",
-    });
-}
+      res.status(200).json({
+          success: true,
+          message: "Projets récupérés avec succès.",
+          projects: user.projects
+      });
+  } catch (error) {
+      console.error("Erreur lors de la récupération des projets de l'utilisateur :", error);
+      res.status(500).json({
+          success: false,
+          message: "Problème lors de l'extraction des projets de l'utilisateur.",
+          error: error.message
+      });
+  }
 };
-

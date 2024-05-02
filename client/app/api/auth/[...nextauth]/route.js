@@ -70,6 +70,7 @@ export const authOptions = {
               lastname: response.data.lastname,
               role: response.data.role,
               accessToken: response.data.token,
+              
             };
             console.log("Authentication successful. Server response:", response.data);
             return user;
@@ -86,15 +87,18 @@ export const authOptions = {
   ],
   callbacks: {
     jwt: async ({ token, user }) => {
-      if (user) {  // When the user logs in
-        token.user = user;  // Store user info into the JWT
+      // user is defined when the user is logging in for the first time
+      if (user) {
+        token.accessToken = user.accessToken; // Store the token into the JWT
+        token.user = user; 
       }
       return token;
     },
     session: async ({ session, token }) => {
-      session.user = token.user;  // Attach the user info from the JWT to the session
+      session.user = token.user;
+      session.accessToken = token.accessToken; // Provide the token to the client-side session
       return session;
-    },
+    }
   },
   session: {
     strategy: "jwt",
