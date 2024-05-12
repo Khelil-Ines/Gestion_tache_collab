@@ -69,6 +69,9 @@ export const authOptions = {
               firstname: response.data.firstname,
               lastname: response.data.lastname,
               role: response.data.role,
+              photo: response.data.photo,
+              descriptionprofile: response.data.descriptionprofile,
+              projects:  response.data.projects,
               accessToken: response.data.token,
               
             };
@@ -91,13 +94,20 @@ export const authOptions = {
       if (user) {
         token.accessToken = user.accessToken; // Store the token into the JWT
         token.user = user; 
+        token.projects = user.projects || [];
       }
       return token;
     },
     session: async ({ session, token }) => {
       session.user = token.user;
       session.accessToken = token.accessToken; // Provide the token to the client-side session
+      maxAge: 24 * 60 * 60;
+      session.user = {
+        ...session.user,
+        projects: token.projects || []
+      };
       return session;
+
     }
   },
   session: {
