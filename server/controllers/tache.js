@@ -30,7 +30,7 @@ const addTache = async (req, res) => {
       tacheData.createdAt = moment().tz('Europe/Paris').toDate();
       
       const newTache = new Tache(tacheData);
-      
+      await newTache.populate('responsable');
       await newTache.save(); // Sauvegarde la tâche d'abord
       
       column.taches.push(newTache._id); // Ajoute l'ID de la tâche au tableau de tâches de la colonne
@@ -42,7 +42,6 @@ const addTache = async (req, res) => {
       res.status(500).json({ erreur: 'Erreur lors de la création de la tâche', message: error.message });
   }
 };
-
   const fetchTache = (req, res) => {
     Tache.findOne({ _id: req.params.id })
     .then((tache) => {
@@ -64,7 +63,6 @@ const addTache = async (req, res) => {
       });
     });
 }
-
   const getTache = (req, res) => {
     Tache.find().then((taches) => {
       res.status(200).json({
@@ -79,7 +77,6 @@ const addTache = async (req, res) => {
       });
     });
   };
-
   const updateTache = (req, res) => {
     Tache.findOneAndUpdate({ _id: req.params.id }, req.body, { new: true }).then(
         (tache) => {
@@ -95,7 +92,7 @@ const addTache = async (req, res) => {
           }
         }
       )
-}
+};
 const deleteTache = (req, res) => {
     Tache.deleteOne({ _id: req.params.id })
       .then((result) => {
