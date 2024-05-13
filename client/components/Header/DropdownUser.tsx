@@ -30,10 +30,7 @@ const DropdownUser = () => {
   // });
 
   // close if the esc key is pressed
-  console.log('session: ', session)
-  console.log('lastname: ', session?.user.lastname)
-  console.log('lastname: ', session?.lastname)
-  console.log('lastname: ', session?.accessToken.lastname)
+ 
 
 
   useEffect(() => {
@@ -67,7 +64,7 @@ if (session){
               <Image
                 width={48}
                 height={48}
-                src={session.user.image || "/images/user/unknown.png"}
+                src={`http://localhost:5000/${session?.user?.photo}` || "/images/user/unknown.png"}
                 alt="User"
                 className="rounded-full"
               />

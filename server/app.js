@@ -44,6 +44,11 @@ app.use("/", userRouter)
 app.use("/project", projectRouter)
 app.use("/tache", tacheRouter)
 app.use("/column", columnRouter)
+const path = require('path');
+
+app.use('/uploads', express.static(path.join(__dirname, 'middleware', 'uploads')));
+console.log(path.join(__dirname, 'uploads'));
+
 
 
 module.exports = app;
