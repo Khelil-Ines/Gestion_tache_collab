@@ -66,6 +66,7 @@ export const authOptions = {
           if (response.status === 200) {
             const user = {
               email: credentials.email,
+              _id: response.data._id,
               firstname: response.data.firstname,
               lastname: response.data.lastname,
               role: response.data.role,

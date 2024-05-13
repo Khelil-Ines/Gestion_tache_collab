@@ -242,7 +242,7 @@
 import { useState, useEffect } from "react";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import DefaultLayout from "@/components/Layouts/DefaultLayout";
-import { useSession , signIn} from "next-auth/react";
+import { useSession , signIn, getSession} from "next-auth/react";
 import axios from "axios";
 import Image from "next/image";
 
@@ -252,12 +252,20 @@ const Settings = () => {
   console.log(session);
   const [user, setUser] = useState(session?.user || {});
 
+  const triggerSessionUpdate = async () => {
+    await signIn('credentials', { redirect: false, callbackUrl: '/' });
+  };
+  const updateUserSession = async () => {
+    const updatedSession = await getSession(); // This re-fetches the session data
+    setUser(updatedSession?.user || {}); // Update local state if needed
+  };
   // When the session updates (like after a call to signIn or useSession), update local state
   useEffect(() => {
       if (session) {
           setUser(session?.user);
       }
   }, [session]);
+  
   const [userDetails, setUserDetails] = useState({
     firstName: '',
     lastName: '',
@@ -278,7 +286,7 @@ const Settings = () => {
   }, [session]);
     
   // Extract user information and photo URL from session
-  const [imageUrl, setImageUrl] = useState(`http://localhost:5000/${session?.user?.photo?.replace(/\\/g, '/') || '/uploads/unknown.png'}`);
+  const [imageUrl, setImageUrl] = useState(`http://localhost:5000/${session?.user?.photo?.replace(/\\/g, '/') || 'middleware/uploads/unknown.png'}`);
 
 
   // State for form inputs
@@ -317,7 +325,7 @@ const Settings = () => {
     const formData = new FormData();
     formData.append('photo', file);
     console.log('Uploading photo:', file);
-console.log("url debut",imageUrl);
+    console.log("url debut",imageUrl);
     try {
       const response = await axios.patch('http://localhost:5000/users/photo', formData, {
         headers: {
@@ -376,6 +384,12 @@ console.log('Updated photo URL:', imageUrl);
       if (response.status === 200) {
         setSuccess(true);
         //signIn('credentials', { email: user.email }, { redirect: false });
+        setUser(session?.user);
+        await updateUserSession();  // Update session after successful profile update
+        await triggerSessionUpdate();
+
+        console.log(session?.user);
+
 
       } else {
         setError("Failed to update profile. Please try again.");
