@@ -164,18 +164,22 @@ exports.getUser = (req, res) => {
         // Handle other errors
         return res.status(500).json({ error: 'File upload error', message: err.message });
       }
-  
+      console.log('Uploaded file details:', req.file);  // Log file details
+
       // Retrieve the authenticated user ID from the request (ensure authentication middleware is used)
-      const userId = req.auth.userId;
+      // const userId = req.auth.userId;
   
       // Retrieve the uploaded photo path or use the existing photo if none was uploaded
       const photoPath = req.file ? path.join('uploads', req.file.filename) : req.auth.photo;
-  
+      console.log('Constructed photo path:', photoPath);  // Log the photo path
+
       // Update the user's profile photo path in the database
       try {
+        const userId = req.auth.userId;
+
         const updatedUser = await User.findByIdAndUpdate(userId, { photo: photoPath }, { new: true });
         if (!updatedUser) {
-          return res.status(404).json({ error: 'User not found' });
+          return res.status(404).json({ error: 'User not found', userId });
         }
         res.status(200).json({ message: 'Profile photo updated successfully', user: updatedUser });
       } catch (error) {

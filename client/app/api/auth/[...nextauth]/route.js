@@ -112,6 +112,8 @@ export const authOptions = {
   },
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+    updateAge: 24 * 60 * 60, // Every day
   },
   secret: process.env.NEXT_AUTH_SECRET,
   pages: {
@@ -121,4 +123,4 @@ export const authOptions = {
 
 const handler = NextAuth(authOptions);
 
-export { handler as GET, handler as POST };
+export { handler as GET, handler as POST, handler as PATCH };

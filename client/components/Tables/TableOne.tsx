@@ -121,6 +121,7 @@
 // };
 
 // export default TableOne;
+"use client";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useSession } from "next-auth/react";
@@ -130,7 +131,6 @@ const TableOne = () => {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-console.log('token2: ', session?.user?.token)
   useEffect(() => {
     const fetchProjects = async () => {
       if (!session?.accessToken) {
