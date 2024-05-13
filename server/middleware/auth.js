@@ -1,5 +1,7 @@
 const jwt = require("jsonwebtoken")
 const User = require("../models/user")
+const Project = require("../models/project")
+
 
 
 module.exports.loggedMiddleware = (req, res, next) => {
@@ -29,14 +31,26 @@ module.exports.loggedMiddleware = (req, res, next) => {
   }
 };
   
-  module.exports.isManager = (req, res, next) => {
-    try {
-      if (req.auth.role === "manager") {
-        next();
-      } else {
-        req.status(403).json({ error: "no access " });
-      }
-    } catch {
-      req.status(401).json({ error: error.message });
+module.exports.isManager = async (req, res, next) => {
+  try {
+    const projectId = req.params.projectId;
+    const userId = req.auth.userId;
+
+    // Récupère le projet
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ error: "Projet non trouvé." });
     }
-  };
+
+    // Vérifie le rôle de l'utilisateur dans le projet
+    const userRoleInProject = project.membres.find(member => member.utilisateur.equals(userId));
+    if (!userRoleInProject || userRoleInProject.role !== "manager") {
+      return res.status(403).json({ error: "Vous n'avez pas les autorisations requises pour cette action. Il faut etre le manager de ce projet" });
+    }
+
+    // Si l'utilisateur a le rôle de manager, passe à la prochaine étape du middleware
+    next();
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

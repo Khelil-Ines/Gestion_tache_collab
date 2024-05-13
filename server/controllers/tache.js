@@ -30,7 +30,7 @@ const addTache = async (req, res) => {
       tacheData.createdAt = moment().tz('Europe/Paris').toDate();
       
       const newTache = new Tache(tacheData);
-      
+      await newTache.populate('responsable');
       await newTache.save(); // Sauvegarde la tâche d'abord
       
       column.taches.push(newTache._id); // Ajoute l'ID de la tâche au tableau de tâches de la colonne
@@ -42,7 +42,6 @@ const addTache = async (req, res) => {
       res.status(500).json({ erreur: 'Erreur lors de la création de la tâche', message: error.message });
   }
 };
-
   const fetchTache = (req, res) => {
     Tache.findOne({ _id: req.params.id })
     .then((tache) => {
@@ -64,7 +63,6 @@ const addTache = async (req, res) => {
       });
     });
 }
-
   const getTache = (req, res) => {
     Tache.find().then((taches) => {
       res.status(200).json({
@@ -79,7 +77,6 @@ const addTache = async (req, res) => {
       });
     });
   };
-
   const updateTache = (req, res) => {
     Tache.findOneAndUpdate({ _id: req.params.id }, req.body, { new: true }).then(
         (tache) => {
@@ -95,7 +92,7 @@ const addTache = async (req, res) => {
           }
         }
       )
-}
+};
 const deleteTache = (req, res) => {
     Tache.deleteOne({ _id: req.params.id })
       .then((result) => {
@@ -156,13 +153,41 @@ const deleteTache = (req, res) => {
         res.status(500).json({ error: 'Erreur lors de l\'ajout du fichier', message: error.message });
     }
 };
+const moveTacheToColumn = async (req, res) => {
+  try {
+      const { tacheId, targetColumnId } = req.params;
 
+      // Récupérer la tâche et la colonne cible
+      const tache = await Tache.findById(tacheId);
+      const targetColumn = await Column.findById(targetColumnId);
 
+      if (!tache || !targetColumn) {
+          return res.status(404).json({ error: 'Tâche ou colonne non trouvée' });
+      }
+
+      // Retirer la tâche de sa colonne actuelle
+      const sourceColumn = await Column.findOne({ taches: tacheId });
+      if (sourceColumn) {
+          sourceColumn.taches.pull(tacheId);
+          await sourceColumn.save();
+      }
+
+      // Ajouter la tâche à la colonne cible
+      targetColumn.taches.push(tacheId);
+      await targetColumn.save();
+
+      res.status(200).json({ message: 'Tâche déplacée avec succès vers la nouvelle colonne' });
+  } catch (error) {
+      console.error('Erreur lors du déplacement de la tâche :', error);
+      res.status(500).json({ error: 'Erreur lors du déplacement de la tâche', message: error.message });
+  }
+};
   module.exports = {
     addTache,
     getTache,
     fetchTache,
     updateTache,
     deleteTache,
-    uploadFile
+    uploadFile,
+    moveTacheToColumn
     }

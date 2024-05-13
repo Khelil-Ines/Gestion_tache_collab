@@ -1,6 +1,7 @@
 const Project = require("../models/project");
 const moment = require('moment-timezone');
 const User = require("../models/user");
+const { populate } = require("dotenv");
 
 
 const addProject = async (req, res, next) => {
@@ -91,7 +92,7 @@ const addProject = async (req, res, next) => {
       )
 }
 const deleteProject = (req, res) => {
-    Project.deleteOne({ _id: req.params.id })
+    Project.deleteOne({ _id: req.params.projectId })
       .then((result) => {
         if (result.deletedCount === 0) {
           res.status(404).json({
@@ -184,7 +185,7 @@ const getMembersOfProject = async (req, res) => {
     const { projectId, memberId } = req.params;
 
     // Recherche le projet par ID
-    const project = await Project.findById(projectId);
+    const project = await Project.findById(projectId).populate('membres.utilisateur');
     if (!project) {
         console.error("Projet non trouvé.");
         return res.status(404).json({ erreur: "Projet non trouvé." });
@@ -194,7 +195,7 @@ const getMembersOfProject = async (req, res) => {
     // Envoie la réponse
     res.json(members);
   } catch (error) {
-    console.error('Erreur lors de la suppression du membre du projet :', error);
+    console.error('Erreur lors de l\'affichage des membres du projet :', error);
     res.status(500).json({ erreur: 'Erreur lors de la suppression du membre du projet', message: error.message });
 }
 };
