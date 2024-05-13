@@ -63,6 +63,7 @@ exports.login = (req, res, next) => {
             // Include firstname and lastname in the successful response
             res.status(200).json({
               token: token,
+              _id: user._id,
               firstname: user.firstname, // assuming the user object has a firstname
               lastname: user.lastname,   // assuming the user object has a lastname
               role: user.role,

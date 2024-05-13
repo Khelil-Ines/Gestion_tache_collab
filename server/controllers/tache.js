@@ -157,6 +157,120 @@ const deleteTache = (req, res) => {
     }
 };
 
+// const moveTacheToColumn = async (req, res) => {
+//   try {
+//       const { tacheId, targetColumnId } = req.params;
+
+//       // Récupérer la tâche et la colonne cible
+//       const tache = await Tache.findById(tacheId);
+//       const targetColumn = await Column.findById(targetColumnId);
+
+//       if (!tache || !targetColumn) {
+//           return res.status(404).json({ error: 'Tâche ou colonne non trouvée' });
+//       }
+
+//       // Retirer la tâche de sa colonne actuelle
+//       const sourceColumn = await Column.findOne({ taches: tacheId });
+//       if (sourceColumn) {
+//           sourceColumn.taches.pull(tacheId);
+//           await sourceColumn.save();
+//       }
+
+//       // Ajouter la tâche à la colonne cible
+//       targetColumn.taches.push(tacheId);
+//       await targetColumn.save();
+
+//       res.status(200).json({ message: 'Tâche déplacée avec succès vers la nouvelle colonne' });
+//   } catch (error) {
+//       console.error('Erreur lors du déplacement de la tâche :', error);
+//       res.status(500).json({ error: 'Erreur lors du déplacement de la tâche', message: error.message });
+//   }
+// };
+
+// const moveTacheToColumn = async (req, res) => {
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
+//   try {
+//     const { tacheId, targetColumnId } = req.params;
+
+//     const tache = await Tache.findById(tacheId).session(session);
+//     const targetColumn = await Column.findById(targetColumnId).session(session);
+//     if (!tache || !targetColumn) {
+//       await session.abortTransaction();
+//       session.endSession();
+//       return res.status(404).json({ error: 'Tâche ou colonne non trouvée' });
+//     }
+
+//     const sourceColumn = await Column.findOne({ taches: tacheId }).session(session);
+//     if (sourceColumn) {
+//       sourceColumn.taches.pull(tacheId);
+//       await sourceColumn.save({ session });
+//     }
+
+//     targetColumn.taches.push(tacheId);
+//     await targetColumn.save({ session });
+
+//     await session.commitTransaction();
+//     session.endSession();
+//     res.status(200).json({ message: 'Tâche déplacée avec succès vers la nouvelle colonne' });
+//   } catch (error) {
+//     await session.abortTransaction();
+//     session.endSession();
+//     console.error('Erreur lors du déplacement de la tâche :', error);
+//     res.status(500).json({ error: 'Erreur lors du déplacement de la tâche', message: error.message });
+//   }
+// };
+const mongoose = require("mongoose");
+
+const moveTacheToColumn = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const { tacheId, targetColumnId } = req.params;
+    
+    const tache = await Tache.findById(tacheId).session(session);
+    const targetColumn = await Column.findById(targetColumnId).session(session);
+    if (!tache || !targetColumn) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ error: 'Tâche ou colonne non trouvée' });
+    }
+    if (String(tache.responsable)!==  String(req.auth.userId)) {
+      console.log(String(tache.responsable),  String(req.auth.userId));
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ error: 'Vous n\'êtes pas autorisé à déplacer cette tâche' });
+    }
+    const sourceColumn = await Column.findOne({ taches: tacheId }).session(session);
+    if (!sourceColumn) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ error: 'Colonne source non trouvée' });
+    }
+
+    sourceColumn.taches.pull(tacheId);
+    await sourceColumn.save({ session });
+
+    targetColumn.taches.push(tacheId);
+    await targetColumn.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+    
+    res.status(200).json({
+      message: 'Tâche déplacée avec succès vers la nouvelle colonne',
+      tache: tache, // Include the updated task information in the response
+      sourceColumn: sourceColumn, // Include source column information in the response
+      targetColumn: targetColumn // Include target column information in the response
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error('Erreur lors du déplacement de la tâche :', error);
+    res.status(500).json({ error: 'Erreur lors du déplacement de la tâche', message: error.message });
+  }
+};
+
 
   module.exports = {
     addTache,
@@ -164,5 +278,6 @@ const deleteTache = (req, res) => {
     fetchTache,
     updateTache,
     deleteTache,
-    uploadFile
+    uploadFile,
+    moveTacheToColumn,
     }
