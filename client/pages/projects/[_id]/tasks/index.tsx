@@ -9,6 +9,7 @@ import { useSession } from 'next-auth/react';
 import CustomAlerts from '@/components/CustomAlerts';
 import '@/css/delete.scss';
 import Select from 'react-select';
+import RootLayout from '@/app/layout';
 
 
 
@@ -17,6 +18,11 @@ import Select from 'react-select';
 interface Task {
   id: string;
   name: string;
+  responsable: string; // This holds the ID of the user responsible for the task
+  responsableDetails?: { // Optional field to store user details
+    nom: string;
+    photo: string;
+  };
 }
 
 interface Column {
@@ -61,7 +67,7 @@ const [users, setUsers] = useState<User[]>([]); // Users state
 
 
 const [file, setFile] = useState(null); // To hold the file object
-  const [fileURL, setFileURL] = useState(''); // To store the URL of the uploaded file
+const [fileURL, setFileURL] = useState(''); // To store the URL of the uploaded file
 // This function handles the file upload
 const handleFileUpload = async () => {
   if (!file) {
@@ -117,7 +123,7 @@ const [selectedTask, setSelectedTask] = useState(null);
 const handleTaskClick = (task) => {
   setSelectedTask({
     ...task,
-    responsable: task.responsable || users[0]?.id // Set to first user if none is set
+    responsable: task.responsable || users[0]?._id // Set to first user if none is set
   });
   setIsModalOpen(true);
 };
@@ -161,8 +167,8 @@ fetchUsers();
 }, [_id]);
 
 const options =  users.map(user => ({
-  value: user._id,
-  label: user.email
+  value: user.id,
+  label: `${user.firstName} ${user.lastName} (${user.email})`
 }));
 
 const customStyles = {
@@ -204,6 +210,34 @@ const handleAddTask = async () => {
 };
 
 
+const deleteTask = async (columnId, taskId) => {
+  try {
+    // API call to delete the task
+    const response = await axios.delete(`http://localhost:5000/tache/${taskId}`);
+    if (response.status === 200) {
+      console.log('Task deleted successfully');
+      // Remove the task from columns state without needing to refetch all columns
+      const updatedColumns = columns.map(column => {
+        if (column._id === columnId) {
+          return {
+            ...column,
+            tasks: column.tasks.filter(task => task._id !== taskId)
+          };
+        }
+        return column;
+      });
+      setIsModalOpen(false);
+
+      setColumns(updatedColumns);
+      await fetchColumns();
+    } else {
+      throw new Error('Failed to delete task');
+    }
+  } catch (error) {
+    console.error('Error deleting task:', error);
+    setAlert({ show: true, message: 'Failed to delete task.', type: 'error' });
+  }
+};
 
 
 
@@ -214,6 +248,10 @@ const handleAddTask = async () => {
     }
   }, [alert.show]);
 
+  function formatPhotoUrl(photoPath) {
+    return photoPath ? `http://localhost:5000/${photoPath.replace(/\\/g, '/')}` : 'http://localhost:5000/middleware/uploads/unknown.png';
+  }
+  
 // Function to fetch columns
 const fetchColumns = async () => {
   if (!_id) {
@@ -230,25 +268,68 @@ const fetchColumns = async () => {
         axios.get<Column>(`http://localhost:5000/column/${columnId}`)
       );
       const columnsResponses = await Promise.all(columnsPromises);
-      const columnsWithTasks = await Promise.all(columnsResponses.map(async (columnResponse) => {
-        const column = columnResponse.data;
-        const tasksPromises = column.model.taches.map(taskId =>
-          axios.get<Task>(`http://localhost:5000/tache/${taskId}`)
-        );
-        const tasksResponses = await Promise.all(tasksPromises);
+    //   const columnsWithTasks = await Promise.all(columnsResponses.map(async (columnResponse) => {
+    //     const column = columnResponse.data;
+    //     const tasksPromises = column.model.taches.map(taskId =>
+    //       axios.get<Task>(`http://localhost:5000/tache/${taskId}`)
+    //     );
+    //     const tasksResponses = await Promise.all(tasksPromises);
+    //     return {
+    //       ...column,
+    //       tasks: tasksResponses.map(response => response.data.model),
+    //       isAddingTask: false,
+    //       newTaskName: '',
+    //       selectedUserId: ''
+    //     };
+    //   }));
+    //   setColumns(columnsWithTasks);
+    // } else {
+    //   console.error(`Failed to fetch project: ${response.status}`);
+    //   // Handle non-success status codes appropriately
+    // }
+    const columnsWithTasks = await Promise.all(columnsResponses.map(async (columnResponse) => {
+      const column = columnResponse.data;
+      const tasksWithDetails = await Promise.all(column.model.taches.map(async (taskId) => {
+        const taskResponse = await axios.get<Task>(`http://localhost:5000/tache/${taskId}`);
+        const task = taskResponse.data.model;
+
+        // Fetch user details for the responsable
+        let responsableDetails = null;
+        if (task.responsable) {
+          try {
+            const userResponse = await axios.get(`http://localhost:5000/${task.responsable}`);
+            const user = userResponse.data.model;
+            responsableDetails = {
+              nom: user.firstname,
+              photo: formatPhotoUrl(user.photo) // Make sure your user model has a 'photo' field
+            };
+          } catch (userError) {
+            console.error(`Error fetching user details for task ${task.id}:`, userError.message);
+            responsableDetails = {
+              nom: 'Unknown',
+              photoUrl: 'middleware/uploads/unknown.png' // Default image path in case of an error
+            };
+          }
+        }
+
         return {
-          ...column,
-          tasks: tasksResponses.map(response => response.data.model),
-          isAddingTask: false,
-          newTaskName: '',
-          selectedUserId: ''
+          ...task,
+          responsableDetails // Add responsible details to the task object
         };
       }));
-      setColumns(columnsWithTasks);
-    } else {
-      console.error(`Failed to fetch project: ${response.status}`);
-      // Handle non-success status codes appropriately
-    }
+
+      return {
+        ...column,
+        tasks: tasksWithDetails,
+        isAddingTask: false,
+        newTaskName: '',
+        selectedUserId: ''
+      };
+    }));
+    setColumns(columnsWithTasks);
+  } else {
+    console.error(`Failed to fetch project: ${response.status}`);
+  }
   } catch (error) {
     console.error(`Error fetching project: ${error.message}`);
     // Handle network or server errors here
@@ -266,6 +347,16 @@ useEffect(() => {
       try {
         const projectResponse = await axios.get<Project>(`http://localhost:5000/project/${_id}`);
         setProject(projectResponse.data);
+        const memberDetails = projectResponse.data.model.membres.map(member => ({
+          id: member.utilisateur._id,
+          email: member.utilisateur.email,
+          firstName: member.utilisateur.firstname,
+          lastName: member.utilisateur.lastname,
+          role: member.role,
+          photo: `http://localhost:5000/${member.utilisateur.photo.replace(/\\/g, '/')}`
+        }));
+  
+        setUsers(memberDetails);
         const columnsPromises = projectResponse.data.model.columns.map(columnId =>
           axios.get<Column>(`http://localhost:5000/column/${columnId}`)
         );
@@ -394,8 +485,9 @@ useEffect(() => {
   if (loading) return <p>Loading...</p>;
   if (error) return <p>{error}</p>;
 
-  return (
-    <DefaultLayout>
+  return ( 
+  <div >
+ 
       <Breadcrumb pageName="My Project" />
       <h2>Project: {project?.model.nom}</h2>
       {alert.show && (
@@ -430,6 +522,31 @@ useEffect(() => {
                           <li ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} style={{...provided.draggableProps.style,  padding: '6px', margin: '4px',  background: snapshot.isDragging ? 'lightblue' : '#fff', borderRadius: '4px' }}
                             onClick={() => handleTaskClick(task)}>
                             {task.nom}
+                            {task.responsableDetails && (
+            <>
+              <img src={task.responsableDetails.photo} alt="Responsable" style={{ width: 30, height: 30, borderRadius: '50%' }} />
+              <span>{task.responsableDetails.nom}</span>
+            </>
+          )}
+           <button
+          style={{
+            position: 'absolute',
+            top: '5px',
+            right: '5px',
+            background: 'red',
+            color: 'white',
+            border: 'none',
+            borderRadius: '50%',
+            width: '20px',
+            height: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer'
+          }}
+        >
+          X
+        </button>
                           </li>
                           
                         )}
@@ -487,7 +604,7 @@ useEffect(() => {
         onChange={handleFileChange}
         className="file-input"
       />
-      <button   type="button" onClick={handleFileUpload} className="upload-button">
+      <button   type="button" onClick={handleFileUpload} className="upload-button mb-5">
         Upload File
       </button>
       {error && <p className="error-message">{error}</p>}
@@ -495,7 +612,10 @@ useEffect(() => {
 
               <div className="flex justify-end">
                 <button type="button" onClick={closeModal} className="border px-6 py-2 mr-4">Cancel</button>
-                <button type="submit" className="bg-blue-500 text-white px-6 py-2">Save Changes</button>
+                <button type="submit" className="bg-blue-500 text-white px-6 py-2 mr-4">Save Changes</button>
+                <button type="button" onClick={() => deleteTask(currentColumnId, selectedTask._id)}
+ className="bg-red text-white px-6 py-2">Supprimer</button>
+
               </div>
               
 
@@ -534,6 +654,7 @@ useEffect(() => {
               options={options}
               onChange={handleSelectChange}
               styles={customStyles}
+              value={options.find(option => option.value === selectedUser)}
               placeholder="Select a user"
               className="user-select"
             />
@@ -553,7 +674,18 @@ useEffect(() => {
 
          <button
   onClick={() => setIsAddingColumn(true)}
-  className="py-2 px-4 bg-blue-500 text-white rounded hover:bg-blue-600"
+  style={{
+    width: '150px',  // Set a fixed width
+    height: '40px',  // Set a fixed height
+    backgroundColor: 'blue',
+    color: 'white',
+    borderRadius: '5px',
+    border: 'none',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  }}
 >
   + New Column
 </button>
@@ -565,17 +697,36 @@ useEffect(() => {
       value={newColumnName}
       onChange={(e) => setNewColumnName(e.target.value)}
       placeholder="Enter column name"
-      className="px-2 py-1 border rounded"
+      //className="px-2 py-1 border rounded"
+      style={{ padding: '10px', marginRight: '10px', width: '200px' }}
+
     />
     <button
       onClick={handleAddColumn}
-      className="ml-2 py-1 px-4 bg-green-500 text-white rounded hover:bg-green-600"
+      //className="ml-2 py-1 px-4 bg-green-500 text-white rounded hover:bg-green-600"
+      style={{
+        backgroundColor: 'green',
+        color: 'white',
+        padding: '10px 20px',
+        border: 'none',
+        borderRadius: '5px',
+        cursor: 'pointer'
+      }}
     >
       Add Column
     </button>
     <button
       onClick={() => setIsAddingColumn(false)}
-      className="ml-2 py-1 px-4 bg-red-500 text-white rounded hover:bg-red-600"
+     // className="ml-2 py-1 px-4 bg-red-500 text-white rounded hover:bg-red-600"
+     style={{
+      backgroundColor: 'red',
+      color: 'white',
+      padding: '10px 20px',
+      marginLeft: '10px',
+      border: 'none',
+      borderRadius: '5px',
+      cursor: 'pointer'
+    }}
     >
       Cancel
     </button>
@@ -583,7 +734,7 @@ useEffect(() => {
   )}
         </div>
       </DragDropContext>
-    </DefaultLayout>
+    </div>
   );
 };
 

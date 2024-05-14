@@ -109,27 +109,57 @@ const addTache = async (req, res) => {
         }
       )
 };
-const deleteTache = (req, res) => {
-    Tache.deleteOne({ _id: req.params.id })
-      .then((result) => {
-        if (result.deletedCount === 0) {
-          res.status(404).json({
-            message: "Tache non trouvé !",
-          });
-        } else {
-          res.status(200).json({
-            model: result,
-            message: "Tache supprimé!",
-          });
-        }
-      })
-      .catch((error) => {
-        res.status(400).json({
-          error: error.message,
-          message: "Données invalides!",
-        });
-      });
-  };
+
+const deleteTache = async (req, res) => {
+  try {
+      const tacheId = req.params.id;
+      
+      // Trouver la tâche à supprimer
+      const tache = await Tache.findById(tacheId);
+      if (!tache) {
+          return res.status(404).json({ message: "Tache non trouvée !" });
+      }
+
+      // Trouver la colonne à laquelle appartient la tâche
+      const colonne = await Column.findOneAndUpdate(
+          { taches: tacheId },
+          { $pull: { taches: tacheId } },
+          { new: true }
+      );
+
+      // Supprimer la tâche
+      const result = await Tache.deleteOne({ _id: tacheId });
+
+      if (result.deletedCount === 0) {
+          return res.status(404).json({ message: "Tache non trouvée !" });
+      }
+
+      res.status(200).json({ message: "Tache supprimée avec succès !" });
+  } catch (error) {
+      res.status(500).json({ error: error.message, message: "Une erreur est survenue lors de la suppression de la tâche !" });
+  }
+};
+// const deleteTache = (req, res) => {
+//     Tache.deleteOne({ _id: req.params.id })
+//       .then((result) => {
+//         if (result.deletedCount === 0) {
+//           res.status(404).json({
+//             message: "Tache non trouvé !",
+//           });
+//         } else {
+//           res.status(200).json({
+//             model: result,
+//             message: "Tache supprimé!",
+//           });
+//         }
+//       })
+//       .catch((error) => {
+//         res.status(400).json({
+//           error: error.message,
+//           message: "Données invalides!",
+//         });
+//       });
+//   };
 //   const uploadFile = async (req, res, next) => {
 //     try {
 //         // Utilisez le middleware Multer pour gérer le téléchargement de fichiers
