@@ -58,6 +58,95 @@ const [newTaskName, setNewTaskName] = useState('');
 const [users, setUsers] = useState<User[]>([]); // Users state
 
 
+
+
+const [file, setFile] = useState(null); // To hold the file object
+  const [fileURL, setFileURL] = useState(''); // To store the URL of the uploaded file
+// This function handles the file upload
+const handleFileUpload = async () => {
+  if (!file) {
+    setError('Please select a file to upload.');
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('file', file); // Append the file
+
+  try {
+    const response = await axios.post(`http://localhost:5000/tache/uploadfile/${selectedTask?._id}`, formData, {
+      headers: {
+        'Authorization': `Bearer ${session.accessToken}`, // Assume session.accessToken is available
+      },
+    });
+
+    if (response.status === 200) {
+      const files = response.data.model.file;
+            if (files && files.length > 0) {
+                const lastFilePath = files[files.length - 1];  // Get the last file path
+                const newTaskFileUrl = `http://localhost:5000/${lastFilePath.replace(/\\/g, '/')}`;
+                setFileURL(newTaskFileUrl);
+            
+                console.log("File upload successful:", newTaskFileUrl);
+
+    }} else {
+      setAlert({ show: true, message: "Failed to upload file.", type: 'error' });
+
+    }
+  } catch (error) {
+    setError('An error occurred during file upload.');
+    console.error("File upload error:", error);
+  }
+};
+
+
+const handleFileChange = (e) => {
+  if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]); // Update the state with the selected file
+  } else {
+      setAlert({ show: true, message: "No file selected.", type: 'error' });
+
+  }
+};
+
+
+// State for modal visibility and selected task details
+const [isModalOpen, setIsModalOpen] = useState(false);
+const [selectedTask, setSelectedTask] = useState(null);
+
+// Function to open modal with task data
+const handleTaskClick = (task) => {
+  setSelectedTask({
+    ...task,
+    responsable: task.responsable || users[0]?.id // Set to first user if none is set
+  });
+  setIsModalOpen(true);
+};
+
+// Function to close modal
+const closeModal = () => {
+  setIsModalOpen(false);
+  setSelectedTask(null);
+};
+
+// Function to handle task updates
+const handleUpdateTask = async (e) => {
+  e.preventDefault();
+  try {
+    const response = await axios.patch(`http://localhost:5000/tache/${selectedTask._id}`, {
+      nom: selectedTask?.nom,
+      responsable: selectedTask?.responsable,
+      description: selectedTask?.description
+    });
+    console.log('Task updated successfully:', response.data);
+    await fetchColumns(); // Refresh data
+    closeModal(); // Close modal after update
+  } catch (error) {
+    console.log(selectedTask?.nom);
+    console.error('Failed to update task:', error);
+  }
+};
+
+
 const fetchUsers = async () => {
   try {
     const response = await axios.get('http://localhost:5000/getU'); // Make sure the URL is correct
@@ -338,12 +427,85 @@ useEffect(() => {
                     {column.tasks.map((task, taskIndex) => (
                       <Draggable key={task._id} draggableId={task._id} index={taskIndex}>
                         {(provided , snapshot) => (
-                          <li ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} style={{...provided.draggableProps.style,  padding: '6px', margin: '4px',  background: snapshot.isDragging ? 'lightblue' : '#fff', borderRadius: '4px' }}>
+                          <li ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} style={{...provided.draggableProps.style,  padding: '6px', margin: '4px',  background: snapshot.isDragging ? 'lightblue' : '#fff', borderRadius: '4px' }}
+                            onClick={() => handleTaskClick(task)}>
                             {task.nom}
                           </li>
+                          
                         )}
+                        
                       </Draggable>
                     ))}
+                    {isModalOpen && selectedTask && (
+  <div className="modal">
+    {/* <h2>Task Details</h2>
+    <p><strong>Name:</strong> {selectedTask.nom}</p>
+    <p><strong>Description:</strong> {selectedTask.description}</p>
+    <button onClick={closeModal}>Close</button> */}
+     <div className="grid grid-cols-5 gap-8">
+      <div className="col-span-5">
+        <div className="rounded-sm border border-stroke bg-white shadow-default">
+          <div className="border-b border-stroke px-7 py-4">
+            <h3>Edit Task</h3>
+          </div>
+          <div className="p-7">
+            <form onSubmit={handleUpdateTask}>
+              <input
+                className="w-full rounded border bg-gray px-4.5 py-3 mb-5"
+                value={selectedTask?.nom}
+                onChange={(e) => setSelectedTask({...selectedTask, nom: e.target.value})}
+                placeholder="Task Name"
+              />
+              <select
+                className="w-full rounded border bg-gray px-4.5 py-3 mb-5"
+                value={selectedTask?.responsable}
+                onChange={(e) => setSelectedTask({...selectedTask, responsable: e.target.value})}
+              >
+                {users.map(user => (
+                  <option key={user._id} value={user._id}>{user.email}</option>
+                ))}
+              </select>
+              <textarea
+                className="w-full rounded border bg-gray px-4.5 py-3 mb-5"
+                rows="3"
+                value={selectedTask?.description}
+                onChange={(e) => setSelectedTask({...selectedTask, description: e.target.value})}
+                placeholder="Description"
+              ></textarea>
+              {/* <input
+  type="file"
+  onChange={handleFileChange}
+  className="w-full rounded border bg-gray px-4.5 py-3 mb-5"
+/>
+{selectedTask.filePath && (
+  <a href={`http://localhost:5000/${selectedTask.filePath}`} target="_blank" rel="noopener noreferrer">
+    Download Attached File
+  </a>
+)} */}
+  <input
+        type="file"
+        onChange={handleFileChange}
+        className="file-input"
+      />
+      <button   type="button" onClick={handleFileUpload} className="upload-button">
+        Upload File
+      </button>
+      {error && <p className="error-message">{error}</p>}
+      {fileURL && <p>File URL: <a href={fileURL} target="_blank" rel="noopener noreferrer">View File</a></p>}
+
+              <div className="flex justify-end">
+                <button type="button" onClick={closeModal} className="border px-6 py-2 mr-4">Cancel</button>
+                <button type="submit" className="bg-blue-500 text-white px-6 py-2">Save Changes</button>
+              </div>
+              
+
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
                     <div>
                 
                   <button onClick={() => {

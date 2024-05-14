@@ -2,19 +2,34 @@ const Tache = require("../models/tache");
 const Column = require("../models/column");
 const multer = require('multer');
 const moment = require('moment-timezone');
+const path = require('path');
+const upload = require('../middleware/multer');
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-      cb(null, 'uploads/files') // Spécifie le dossier où les fichiers seront stockés
-  },
-  filename: function (req, file, cb) {
-      // Génère un nom de fichier unique pour éviter les collisions
-      cb(null, Date.now() + '-' + file.originalname)
-  }
-});
-
+// const storage = multer.diskStorage({
+//   destination: function (req, file, cb) {
+//       cb(null, 'uploads/files') // Spécifie le dossier où les fichiers seront stockés
+//   },
+//   filename: function (req, file, cb) {
+//       // Génère un nom de fichier unique pour éviter les collisions
+//       cb(null, Date.now() + '-' + file.originalname)
+//   }
+// });
+// Configure Multer storage with a custom directory and filename
+// const storage = multer.diskStorage({
+//   destination: (req, file, cb) => {
+//     // Define the directory where files should be saved (adjust this path)
+//     const uploadPath = path.join(__dirname, 'uploads');
+//     cb(null, uploadPath);
+//   },
+//   filename: (req, file, cb) => {
+//     // Create a unique filename with a timestamp
+//     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+//     const newFilename = `${file.fieldname}-${uniqueSuffix}-${file.originalname}`;
+//     cb(null, newFilename);
+//   }
+// });
 // Initialise l'objet upload avec les options de configuration
-const upload = multer({ storage: storage });
+// const upload = multer({ storage: storage });
 
 const addTache = async (req, res) => {
   try {
@@ -83,6 +98,7 @@ const addTache = async (req, res) => {
           if (!tache) {
             res.status(404).json({
               message: "objet non trouvé!",
+             
             });
           } else {
             res.status(200).json({
@@ -114,44 +130,91 @@ const deleteTache = (req, res) => {
         });
       });
   };
-  const uploadFile = async (req, res, next) => {
-    try {
-        // Utilisez le middleware Multer pour gérer le téléchargement de fichiers
-        upload.single('file')(req, res, async function (err) {
-            if (err instanceof multer.MulterError) {
-                // Une erreur Multer s'est produite lors du téléchargement du fichier
-                return res.status(400).json({ error: 'Erreur lors du téléchargement du fichier', message: err.message });
-            } else if (err) {
-                // Une autre erreur s'est produite
-                return res.status(500).json({ error: 'Erreur lors du téléchargement du fichier', message: err.message });
-            }
+//   const uploadFile = async (req, res, next) => {
+//     try {
+//         // Utilisez le middleware Multer pour gérer le téléchargement de fichiers
+//         upload.single('file')(req, res, async function (err) {
+//             if (err instanceof multer.MulterError) {
+//                 // Une erreur Multer s'est produite lors du téléchargement du fichier
+//                 return res.status(400).json({ error: 'Erreur lors du téléchargement du fichier', message: err.message });
+//             } else if (err) {
+//                 // Une autre erreur s'est produite
+//                 return res.status(500).json({ error: 'Erreur lors du téléchargement du fichier', message: err.message });
+//             }
 
-            // Récupère l'ID de la tâche à laquelle le fichier doit être ajouté
-            const tacheId = req.params.id;
+//             // Récupère l'ID de la tâche à laquelle le fichier doit être ajouté
+//             const tacheId = req.params.id;
 
-            // Vérifie si la tâche existe
-            const tache = await Tache.findById(tacheId);
-            if (!tache) {
-                return res.status(404).json({ error: 'Tâche non trouvée' });
-            }
+//             // Vérifie si la tâche existe
+//             const tache = await Tache.findById(tacheId);
+//             if (!tache) {
+//                 return res.status(404).json({ error: 'Tâche non trouvée' });
+//             }
 
-            // Initialise la propriété file comme un tableau vide si elle n'est pas définie
-            if (!tache.file) {
-                tache.file = [];
-            }
+//             // Initialise la propriété file comme un tableau vide si elle n'est pas définie
+//             if (!tache.file) {
+//                 tache.file = [];
+//             }
 
-            // Ajoute le fichier à la liste des fichiers de la tâche
-            tache.file.push(req.file.path);
+//             // Ajoute le fichier à la liste des fichiers de la tâche
+//             tache.file.push(req.file.path);
 
-            // Enregistre les modifications dans la base de données
-            await tache.save();
+//             // Enregistre les modifications dans la base de données
+//             await tache.save();
 
-            res.status(200).json({ message: 'Fichier ajouté avec succès à la tâche' });
-        });
-    } catch (error) {
-        console.error('Erreur lors de l\'ajout du fichier :', error);
-        res.status(500).json({ error: 'Erreur lors de l\'ajout du fichier', message: error.message });
-    }
+//             res.status(200).json({ message: 'Fichier ajouté avec succès à la tâche',  model: tache });
+//         });
+//     } catch (error) {
+//         console.error('Erreur lors de l\'ajout du fichier :', error);
+//         res.status(500).json({ error: 'Erreur lors de l\'ajout du fichier', message: error.message });
+//     }
+// };
+const uploadFile = async (req, res, next) => {
+  upload.single('file')(req, res, async function (err) {
+      if (err instanceof multer.MulterError) {
+          // Handle errors related to multer limits, incorrect form data, etc.
+          return res.status(400).json({ error: 'File upload error', message: err.message });
+      } else if (err) {
+          // Handle other errors
+          return res.status(500).json({ error: 'File upload error', message: err.message });
+      }
+
+      // Proceed only if a file has been uploaded
+      if (!req.file) {
+          return res.status(400).json({ error: 'No file uploaded' });
+      }
+
+      // Assuming the task ID is passed via route parameters
+      const { id: tacheId } = req.params;
+
+      try {
+          // Fetch the task from the database
+          const tache = await Tache.findById(tacheId);
+          if (!tache) {
+              return res.status(404).json({ error: 'Task not found' });
+          }
+
+          // Initialize the file property if it's not already an array
+          if (!tache.file) {
+              tache.file = [];
+          }
+
+          // Construct a publicly accessible URL for the file
+          const fileUrl = `uploads/${req.file.filename}`;
+
+          // Add the new file URL to the task's file array
+          tache.file.push(fileUrl);
+
+          // Save the updated task
+          await tache.save();
+
+          // Respond with success
+          res.status(200).json({ message: 'File added successfully to the task', model: tache });
+      } catch (error) {
+          console.error('Error updating task with new file:', error);
+          res.status(500).json({ error: 'Error updating task', message: error.message });
+      }
+  });
 };
 
 // const moveTacheToColumn = async (req, res) => {
