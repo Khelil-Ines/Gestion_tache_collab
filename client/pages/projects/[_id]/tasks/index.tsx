@@ -8,6 +8,8 @@ import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { useSession } from 'next-auth/react';
 import CustomAlerts from '@/components/CustomAlerts';
 import '@/css/delete.scss';
+import Select from 'react-select';
+
 
 
 
@@ -53,6 +55,41 @@ const [isAddingColumn, setIsAddingColumn] = useState(false); // To handle form v
 const [currentColumnId, setCurrentColumnId] = useState(null);
 const [selectedUser, setSelectedUser] = useState('');
 const [newTaskName, setNewTaskName] = useState('');
+const [users, setUsers] = useState<User[]>([]); // Users state
+
+
+const fetchUsers = async () => {
+  try {
+    const response = await axios.get('http://localhost:5000/getU'); // Make sure the URL is correct
+    console.log('Users fetched:', response.data.model);
+    setUsers(response.data.model); // Assuming the response data is the array of users
+  } catch (error) {
+    console.error('Failed to fetch users:', error);
+  }
+};
+useEffect(() => {
+fetchUsers();
+}, [_id]);
+
+const options =  users.map(user => ({
+  value: user._id,
+  label: user.email
+}));
+
+const customStyles = {
+  control: (base, state) => ({
+    ...base,
+    borderColor: state.isFocused ? 'blue' : base.borderColor,
+    '&:hover': {
+      borderColor: state.isFocused ? 'darkblue' : base.borderColor,
+    },
+    boxShadow: state.isFocused ? null : null,
+  }),
+};
+
+const handleSelectChange = selectedOption => {
+  setSelectedUser(selectedOption.value);
+};
 
 const handleAddTask = async () => {
   console.log('Adding task for user ID:', selectedUser); // Ensure this is not undefined
@@ -77,21 +114,9 @@ const handleAddTask = async () => {
   }
 };
 
-const [users, setUsers] = useState<User[]>([]); // Users state
 
 
-const fetchUsers = async () => {
-  try {
-    const response = await axios.get('http://localhost:5000/getU'); // Make sure the URL is correct
-    console.log('Users fetched:', response.data.model);
-    setUsers(response.data.model); // Assuming the response data is the array of users
-  } catch (error) {
-    console.error('Failed to fetch users:', error);
-  }
-};
-useEffect(() => {
-fetchUsers();
-}, [_id]);
+
 
   useEffect(() => {
     if (alert.show) {
@@ -343,17 +368,13 @@ useEffect(() => {
               className="task-input"
             />
             
-            <select
-              value={selectedUser}
-              onChange={(e) => setSelectedUser(e.target.value)}
+            <Select
+              options={options}
+              onChange={handleSelectChange}
+              styles={customStyles}
+              placeholder="Select a user"
               className="user-select"
-              
-            >
-              {users.map(user => (
-                <option  key={user._id} value={user._id} 
-                >{user.email} </option>
-              ))}
-            </select>
+            />
             <button onClick={() => handleAddTask()} className="submit-task-button">
               Add
             </button>
