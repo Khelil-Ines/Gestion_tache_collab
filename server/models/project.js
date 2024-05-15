@@ -13,8 +13,8 @@ const projectSchema = mongoose.Schema({
         },
         role: {
             type: String,
-            enum: ["developer", "collaborator","manager"],
-            default: 'developer'
+            enum: ["Developer","developer","collaborator","manager","designer", "Collaborator","Manager","Designer"],
+            default: 'Developer'
         }
     }],
     columns: [{

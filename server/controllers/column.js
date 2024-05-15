@@ -17,14 +17,16 @@ const addColumn = async (req, res) =>  {
         
         const columnData = req.body;
         columnData.createdAt = moment().tz('Europe/Paris').toDate();
-        
+        if (!columnData.nom) {
+          return res.status(400).send({ error: "The column name is required." });
+        }
         const newColumn = new Column(columnData);
         await newColumn.save(); // Sauvegarde la colonne d'abord
         
         project.columns.push(newColumn._id); // Ajoute l'ID de la colonne au tableau de colonnes du projet
         await project.save(); // Sauvegarde le projet avec la nouvelle colonne
         
-        res.json(newColumn); // Retourne la colonne nouvellement créée
+        res.status(200).json({  model: newColumn });
     } catch (error) {
         console.error('Erreur lors de la création de la colonne :', error);
         res.status(500).json({ erreur: 'Erreur lors de la création de la colonne', message: error.message });
@@ -86,27 +88,45 @@ const addColumn = async (req, res) =>  {
         }
       )
 }
-const deleteColumn = (req, res) => {
-    Column.deleteOne({ _id: req.params.id })
-      .then((result) => {
+const deleteColumn =  (req, res) => {
+  const columnId = req.params.id;
+
+  // First find the project that contains this column and remove the column from its array
+  Project.findOneAndUpdate(
+    { columns: columnId },
+    { $pull: { columns: columnId } },
+    { new: true } // This returns the updated document
+  )
+  .then(project => {
+    if (!project) {
+      res.status(404).json({ message: "Projet contenant la colonne non trouvé ou colonne déjà retirée!" });
+      return;
+    }
+    // If the project was found and updated, then delete the column
+    Column.deleteOne({ _id: columnId })
+      .then(result => {
         if (result.deletedCount === 0) {
-          res.status(404).json({
-            message: "Colonne non trouvé !",
-          });
+          res.status(404).json({ message: "Colonne non trouvé!" });
         } else {
-          res.status(200).json({
-            model: result,
-            message: "Colonne supprimé!",
-          });
+          res.status(200).json({ message: "Colonne supprimé avec succès!", details: result });
         }
       })
-      .catch((error) => {
-        res.status(400).json({
+      .catch(error => {
+        res.status(500).json({
           error: error.message,
-          message: "Données invalides!",
+          message: "Erreur lors de la suppression de la colonne!"
         });
       });
-  };
+
+  })
+  .catch(error => {
+    res.status(500).json({
+      error: error.message,
+      message: "Erreur lors de la mise à jour du projet!"
+    });
+  });
+};
+
   const getByNom = (req, res) => {
     const columnNom = req.params.nom ;
   

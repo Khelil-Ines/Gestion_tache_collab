@@ -9,6 +9,9 @@ import { useSession } from 'next-auth/react';
 import CustomAlerts from '@/components/CustomAlerts';
 import '@/css/delete.scss';
 import Select from 'react-select';
+import { SingleValue } from 'react-select'; // Ensure you import the necessary parts from react-select
+import RootLayout from '@/app/layout';
+import { BorderAllRounded } from '@mui/icons-material';
 
 
 
@@ -17,6 +20,11 @@ import Select from 'react-select';
 interface Task {
   id: string;
   name: string;
+  responsable: string; // This holds the ID of the user responsible for the task
+  responsableDetails?: { // Optional field to store user details
+    nom: string;
+    photo: string;
+  };
 }
 
 interface Column {
@@ -39,6 +47,10 @@ interface User {
   name: string;
 }
 
+interface RoleOption {
+  value: number;
+  label: string;
+}
 const ProjectDetails: NextPage = () => {
   
   const { data: session } = useSession();
@@ -56,13 +68,156 @@ const [currentColumnId, setCurrentColumnId] = useState(null);
 const [selectedUser, setSelectedUser] = useState('');
 const [newTaskName, setNewTaskName] = useState('');
 const [users, setUsers] = useState<User[]>([]); // Users state
+//const [allusers, setallUsers] = useState<User[]>([]); // Users state
+
+const [allUsers, setAllUsers] = useState([]);
+const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+const roles = [
+  { id: 1, name: "Collaborator" },
+  { id: 2, name: "Manager" },
+  { id: 3, name: "Developer" },
+  { id: 4, name: "Designer" }
+];
+// const [selectedRole, setSelectedRole] = useState('');
+const roleOptions = roles.map(role => ({
+  value: role.id,
+  label: role.name
+}));
+const [selectedRole, setSelectedRole] = useState<SingleValue<RoleOption>>(null);
+
+// Handle change for the Select component
+const handleRoleChange = (option: SingleValue<RoleOption>) => {
+  setSelectedRole(option);
+};
+const userOptions = allUsers.map(user => ({ value: user._id, label: user.email }));
+const handleAddMember = async () => {
+  if (!selectedUser) return;
+
+  try {
+    const response = await axios.post(`http://localhost:5000/project/invite/${_id}`, {
+      userId: selectedUser,
+      role: selectedRole?.label,
+  },
+      {
+        headers: {
+        'Authorization': `Bearer ${session?.user?.accessToken}`, // Assume session.accessToken is available
+      },
+    });
+    console.log('Member added successfully:', response.data);
+    setAlert({ show: true, message: "Member added successfully !", type: 'success' });
+    setShowAddMemberModal(false)
+    setSelectedRole(null);
+    await fetchColumns();
+
+    // Optional: update UI or state to reflect the new member
+  } catch (error) {
+    if (error.response?.status === 400) {
+      setAlert({ show: true, message: "This user is already a member !", type: 'warning' });
+    }else{
+    console.log(selectedUser)
+    console.error('Failed to add member:', error);
+    setAlert({ show: true, message: "Sorry, Only managers can add member :[ !", type: 'error' });
+    }
+  }
+};
+
+const [file, setFile] = useState(null); // To hold the file object
+const [fileURL, setFileURL] = useState(''); // To store the URL of the uploaded file
+// This function handles the file upload
+const handleFileUpload = async () => {
+  if (!file) {
+    setError('Please select a file to upload.');
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('file', file); // Append the file
+
+  try {
+    const response = await axios.post(`http://localhost:5000/tache/uploadfile/${selectedTask?._id}`, formData, {
+      headers: {
+        'Authorization': `Bearer ${session.accessToken}`, // Assume session.accessToken is available
+      },
+    });
+
+    if (response.status === 200) {
+      const files = response.data.model.file;
+            if (files && files.length > 0) {
+                const lastFilePath = files[files.length - 1];  // Get the last file path
+                const newTaskFileUrl = `http://localhost:5000/${lastFilePath.replace(/\\/g, '/')}`;
+                setFileURL(newTaskFileUrl);
+            
+                console.log("File upload successful:", newTaskFileUrl);
+
+    }} else {
+      setAlert({ show: true, message: "Failed to upload file.", type: 'error' });
+
+    }
+  } catch (error) {
+    setError('An error occurred during file upload.');
+    console.error("File upload error:", error);
+  }
+};
+
+
+const handleFileChange = (e) => {
+  if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]); // Update the state with the selected file
+  } else {
+      setAlert({ show: true, message: "No file selected.", type: 'error' });
+
+  }
+};
+
+
+// State for modal visibility and selected task details
+const [isModalOpen, setIsModalOpen] = useState(false);
+const [selectedTask, setSelectedTask] = useState(null);
+
+// Function to open modal with task data
+const handleTaskClick = (task) => {
+  setSelectedTask({
+    ...task,
+    responsable: task.responsable || users[0]?._id // Set to first user if none is set
+  });
+  setIsModalOpen(true);
+};
+
+// Function to close modal
+const closeModal = () => {
+  setIsModalOpen(false);
+  setSelectedTask(null);
+};
+const handleInputChange = (e) => {
+  console.log("Input Change:", e.target.value);  // Check what value is being captured
+
+  setNewTaskName(event.target.value);
+};
+// Function to handle task updates
+const handleUpdateTask = async (e) => {
+  e.preventDefault();
+  try {
+    const response = await axios.patch(`http://localhost:5000/tache/${selectedTask._id}`, {
+      nom: selectedTask?.nom,
+      responsable: selectedTask?.responsable,
+      description: selectedTask?.description
+    });
+    console.log('Task updated successfully:', response.data);
+    await fetchColumns(); // Refresh data
+    closeModal(); // Close modal after update
+  } catch (error) {
+    console.log(selectedTask?.nom);
+    console.error('Failed to update task:', error);
+  }
+};
 
 
 const fetchUsers = async () => {
   try {
     const response = await axios.get('http://localhost:5000/getU'); // Make sure the URL is correct
     console.log('Users fetched:', response.data.model);
-    setUsers(response.data.model); // Assuming the response data is the array of users
+    
+    setAllUsers(response.data.model); // Assuming the response data is the array of users
   } catch (error) {
     console.error('Failed to fetch users:', error);
   }
@@ -72,8 +227,8 @@ fetchUsers();
 }, [_id]);
 
 const options =  users.map(user => ({
-  value: user._id,
-  label: user.email
+  value: user.id,
+  label: `${user.email}`
 }));
 
 const customStyles = {
@@ -96,25 +251,57 @@ const handleAddTask = async () => {
 
   if (!currentColumnId || !selectedUser) {
     console.log('Selected user:', selectedUser);
+    setAlert({ show: true, message: 'Failed to add task. Please Fill All Fields', type: 'error' });
     console.error('No column or user selected');
     return;
 }
   try {
       const response = await axios.post(`http://localhost:5000/tache/add/${currentColumnId}`, {
-          nom: newTaskName, // Example task data
+          nom: newTaskName, 
           responsable: selectedUser    
         });
       console.log('Task added successfully:', response.data);
+      setNewTaskName('');
       // Update your UI or fetch new data as needed
       await fetchColumns();  // Make sure to implement this function to refresh your local state
+      setAlert({ show: true, message: 'Task added successfully !', type: 'success' });
 
   } catch (error) {
+    setAlert({ show: true, message: 'Failed to add task. Please Fill All Fields', type: 'error' });
       console.log('Selected user:', selectedUser);
       console.error('Failed to add task:', error);
   }
 };
 
 
+const deleteTask = async (columnId, taskId) => {
+  try {
+    // API call to delete the task
+    const response = await axios.delete(`http://localhost:5000/tache/${taskId}`);
+    if (response.status === 200) {
+      console.log('Task deleted successfully');
+      // Remove the task from columns state without needing to refetch all columns
+      const updatedColumns = columns.map(column => {
+        if (column._id === columnId) {
+          return {
+            ...column,
+            tasks: column.tasks.filter(task => task._id !== taskId)
+          };
+        }
+        return column;
+      });
+      setIsModalOpen(false);
+
+      setColumns(updatedColumns);
+      await fetchColumns();
+    } else {
+      throw new Error('Failed to delete task');
+    }
+  } catch (error) {
+    console.error('Error deleting task:', error);
+    setAlert({ show: true, message: 'Failed to delete task.', type: 'error' });
+  }
+};
 
 
 
@@ -125,6 +312,10 @@ const handleAddTask = async () => {
     }
   }, [alert.show]);
 
+  function formatPhotoUrl(photoPath) {
+    return photoPath ? `http://localhost:5000/${photoPath.replace(/\\/g, '/')}` : 'http://localhost:5000/middleware/uploads/unknown.png';
+  }
+  
 // Function to fetch columns
 const fetchColumns = async () => {
   if (!_id) {
@@ -141,25 +332,68 @@ const fetchColumns = async () => {
         axios.get<Column>(`http://localhost:5000/column/${columnId}`)
       );
       const columnsResponses = await Promise.all(columnsPromises);
-      const columnsWithTasks = await Promise.all(columnsResponses.map(async (columnResponse) => {
-        const column = columnResponse.data;
-        const tasksPromises = column.model.taches.map(taskId =>
-          axios.get<Task>(`http://localhost:5000/tache/${taskId}`)
-        );
-        const tasksResponses = await Promise.all(tasksPromises);
+    //   const columnsWithTasks = await Promise.all(columnsResponses.map(async (columnResponse) => {
+    //     const column = columnResponse.data;
+    //     const tasksPromises = column.model.taches.map(taskId =>
+    //       axios.get<Task>(`http://localhost:5000/tache/${taskId}`)
+    //     );
+    //     const tasksResponses = await Promise.all(tasksPromises);
+    //     return {
+    //       ...column,
+    //       tasks: tasksResponses.map(response => response.data.model),
+    //       isAddingTask: false,
+    //       newTaskName: '',
+    //       selectedUserId: ''
+    //     };
+    //   }));
+    //   setColumns(columnsWithTasks);
+    // } else {
+    //   console.error(`Failed to fetch project: ${response.status}`);
+    //   // Handle non-success status codes appropriately
+    // }
+    const columnsWithTasks = await Promise.all(columnsResponses.map(async (columnResponse) => {
+      const column = columnResponse.data;
+      const tasksWithDetails = await Promise.all(column.model.taches.map(async (taskId) => {
+        const taskResponse = await axios.get<Task>(`http://localhost:5000/tache/${taskId}`);
+        const task = taskResponse.data.model;
+
+        // Fetch user details for the responsable
+        let responsableDetails = null;
+        if (task.responsable) {
+          try {
+            const userResponse = await axios.get(`http://localhost:5000/${task.responsable}`);
+            const user = userResponse.data.model;
+            responsableDetails = {
+              nom: user.firstname,
+              photo: formatPhotoUrl(user.photo) // Make sure your user model has a 'photo' field
+            };
+          } catch (userError) {
+            console.error(`Error fetching user details for task ${task.id}:`, userError.message);
+            responsableDetails = {
+              nom: 'Unknown',
+              photoUrl: 'middleware/uploads/unknown.png' // Default image path in case of an error
+            };
+          }
+        }
+
         return {
-          ...column,
-          tasks: tasksResponses.map(response => response.data.model),
-          isAddingTask: false,
-          newTaskName: '',
-          selectedUserId: ''
+          ...task,
+          responsableDetails // Add responsible details to the task object
         };
       }));
-      setColumns(columnsWithTasks);
-    } else {
-      console.error(`Failed to fetch project: ${response.status}`);
-      // Handle non-success status codes appropriately
-    }
+
+      return {
+        ...column,
+        tasks: tasksWithDetails,
+        isAddingTask: false,
+        newTaskName: '',
+        selectedUserId: ''
+      };
+    }));
+    setColumns(columnsWithTasks);
+  } else {
+    console.error(`Failed to fetch project: ${response.status}`);
+  }
   } catch (error) {
     console.error(`Error fetching project: ${error.message}`);
     // Handle network or server errors here
@@ -177,6 +411,16 @@ useEffect(() => {
       try {
         const projectResponse = await axios.get<Project>(`http://localhost:5000/project/${_id}`);
         setProject(projectResponse.data);
+        const memberDetails = projectResponse.data.model.membres.map(member => ({
+          id: member.utilisateur._id,
+          email: member.utilisateur.email,
+          firstName: member.utilisateur.firstname,
+          lastName: member.utilisateur.lastname,
+          role: member.role,
+          photo: `http://localhost:5000/${member.utilisateur.photo.replace(/\\/g, '/')}`
+        }));
+  
+        setUsers(memberDetails);
         const columnsPromises = projectResponse.data.model.columns.map(columnId =>
           axios.get<Column>(`http://localhost:5000/column/${columnId}`)
         );
@@ -271,6 +515,7 @@ useEffect(() => {
       if (response.status === 200) {
         await fetchColumns(); // Reload columns to reflect the new column
         console.log('Column added successfully:', response.data);
+        setIsAddingColumn(false)
       } else {
         throw new Error('Failed to add column');
       }
@@ -305,17 +550,84 @@ useEffect(() => {
   if (loading) return <p>Loading...</p>;
   if (error) return <p>{error}</p>;
 
-  return (
-    <DefaultLayout>
-      <Breadcrumb pageName="My Project" />
-      <h2>Project: {project?.model.nom}</h2>
-      {alert.show && (
+  return ( 
+  <div >
+  {alert.show && (
         <CustomAlerts 
           message={alert.message}
           type={alert.type as 'error' | 'success' | 'warning'}
           onClose={() => setAlert({ show: false, message: '', type: '' })}
         />
       )}
+      <Breadcrumb pageName="My Project"  />
+     
+      <h2 className='mb-4'>Project's name : {project?.model.nom}</h2>
+     
+    
+      <button style={{
+    width: '150px',  // Set a fixed width
+    height: '40px',  // Set a fixed height
+    backgroundColor: 'blue',
+    color: 'white',
+    borderRadius: '5px',
+    marginBottom: '10px',
+    border: 'none',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  }}
+  onClick={() => setShowAddMemberModal(true)}>+ Add Member</button>
+
+{showAddMemberModal && (
+  <div>
+    <Select
+        options={userOptions}
+        onChange={handleSelectChange}
+      placeholder="Select a user"
+    />
+    <Select
+  options={roleOptions}
+  value={selectedRole}
+  onChange={handleRoleChange}
+  placeholder="Select a role"
+  className="my-react-select-container" // Apply custom styles or use className for predefined styles
+  classNamePrefix="my-react-select" // Helps with customizing all parts of the dropdown
+/>
+    {/* <select
+      id="userRole"
+      value={selectedRole}
+      onChange={(e) => setSelectedRole(e.target.value)}
+      style={{ width: '30%', padding: '8px 10px', margin: '10px 0' }}
+    >
+      <option value="">Select a role</option>
+      {roles.map((role) => (
+        <option key={role.id} value={role.name}>{role.name}</option>
+      ))}
+    </select> */}
+
+    <button style={{
+      backgroundColor: 'green',
+      color: 'white',
+      padding: '10px 20px',
+      marginLeft: '10px',
+      marginTop: '10px',
+      border: 'none',
+      borderRadius: '5px',
+      cursor: 'pointer'
+    }}  onClick={handleAddMember}>Confirm </button>
+    <button style={{
+      backgroundColor: 'red',
+      color: 'white',
+      padding: '10px 20px',
+      marginLeft: '10px',
+      marginTop: '10px',
+      border: 'none',
+      borderRadius: '5px',
+      cursor: 'pointer'
+    }} onClick={() => setShowAddMemberModal(false)}>Cancel</button>
+  </div>
+)}
       <DragDropContext onDragEnd={onDragEnd}>
         <div className="columns-container" style={{  display: 'flex',  justifyContent: 'space-around', padding: '10px' }}>
           {columns.map((column, index) => (
@@ -323,7 +635,7 @@ useEffect(() => {
               {(provided) => (
                 <div ref={provided.innerRef} {...provided.droppableProps} style={{borderRadius: '25px', margin: '8px', background: '#e2e2e2', padding: '10px', width: '250px' }}>
                   <div className="column-header" style={{  display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2>{column.model.nom}</h2>
+            <h2 style={{marginLeft: '5px', fontWeight: 'bold', color: '#0A1172', fontSize: '20px' }} >{column.model.nom}</h2>
             <button type="button" className="btn-close" onClick={() => handleDeleteColumn(column.model._id)} >
             <span class="icon-cross"></span>
  
@@ -338,12 +650,116 @@ useEffect(() => {
                     {column.tasks.map((task, taskIndex) => (
                       <Draggable key={task._id} draggableId={task._id} index={taskIndex}>
                         {(provided , snapshot) => (
-                          <li ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} style={{...provided.draggableProps.style,  padding: '6px', margin: '4px',  background: snapshot.isDragging ? 'lightblue' : '#fff', borderRadius: '4px' }}>
+                          <li ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} style={{...provided.draggableProps.style,  padding: '6px', margin: '4px',  background: snapshot.isDragging ? 'lightblue' : '#fff', borderRadius: '4px' }}
+                            onClick={() => handleTaskClick(task)}>
                             {task.nom}
+                            {task.responsableDetails && (
+            <>
+<div style={{ display: 'flex', alignItems: 'center' }}>
+    <img 
+      src={task.responsableDetails.photo} 
+      alt="Responsable" 
+      style={{ width: 20, height: 20, borderRadius: '50%', marginRight: '8px' }} 
+    />
+    <span style={{ color: 'darkblue', fontSize: 12 }}>
+      {task.responsableDetails.nom}
+    </span>
+  </div>            </>
+          )}
+           <button
+          style={{
+            position: 'absolute',
+            top: '5px',
+            right: '5px',
+            background: 'red',
+            color: 'white',
+            border: 'none',
+            borderRadius: '50%',
+            width: '20px',
+            height: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer'
+          }}
+        >
+          X
+        </button>
                           </li>
+                          
                         )}
+                        
                       </Draggable>
                     ))}
+                    {isModalOpen && selectedTask && (
+  <div className="modal">
+
+     <div className="grid grid-cols-5 gap-8">
+      <div className="col-span-5">
+        <div className="rounded-sm border border-stroke bg-white shadow-default">
+          <div className="border-b border-stroke px-7 py-4">
+            <h3>Edit Task</h3>
+          </div>
+          <div className="p-7">
+            <form onSubmit={handleUpdateTask}>
+              <input
+                className="w-full rounded border bg-gray px-4.5 py-3 mb-5"
+                value={selectedTask?.nom}
+                onChange={(e) => setSelectedTask({...selectedTask, nom: e.target.value})}
+                placeholder="Task Name"
+              />
+              <select
+                className="w-full rounded border bg-gray px-4.5 py-3 mb-5"
+                value={selectedTask?.responsable}
+                onChange={(e) => setSelectedTask({...selectedTask, responsable: e.target.value})}
+              >
+                {users.map(user => (
+                  <option key={user._id} value={user._id}>{user.email}</option>
+                ))}
+              </select>
+              <textarea
+                className="w-full rounded border bg-gray px-4.5 py-3 mb-5"
+                rows="3"
+                value={selectedTask?.description}
+                onChange={(e) => setSelectedTask({...selectedTask, description: e.target.value})}
+                placeholder="Description"
+              ></textarea>
+
+  <input
+        type="file"
+        onChange={handleFileChange}
+        className="file-input"
+      />
+      <button   type="button" onClick={handleFileUpload} className="upload-button mb-5" style={{
+      backgroundColor: 'blue',
+      color: 'white',
+      padding: '5px 10px',
+      marginLeft: '10px',
+      border: 'none',
+      borderRadius: '5px',
+      cursor: 'pointer'
+    }}>
+        Upload File
+      </button>
+      {error && <p className="error-message">{error}</p>}
+      {fileURL && <p>File URL: <a href={fileURL} target="_blank" rel="noopener noreferrer" className="border text-white bg-blue-500">View File</a></p>}
+
+              <div className="flex justify-end">
+                <button type="button" onClick={closeModal} className="border px-6 py-2 mr-4">Cancel</button>
+                <button type="submit" className="bg-blue-500 text-white px-6 py-2 mr-4">Save Changes</button>
+                <button type="button" onClick={() => deleteTask(currentColumnId, selectedTask._id)}
+ className="bg-red text-white px-6 py-2">Supprimer</button>
+
+              </div>
+              
+
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
                     <div>
                 
                   <button onClick={() => {
@@ -359,23 +775,41 @@ useEffect(() => {
           + Add Task
         </button>
         {column.isAddingTask && (
-          <div className="add-task-form">
+          <div className="add-task-form mb-4 border px-2 py-2 mr-4 bg-blue-100" style={{borderRadius : 20}}>
             <input
+             style={{
+              width: '100%', // Full width
+              padding: '8px 10px', // Comfortable padding
+              fontFamily: 'Arial, sans-serif', // Font family for consistency
+              border: '1px solid #ccc', // Subtle border
+              borderRadius: '4px', // Rounded corners
+              backgroundColor: '#fff', // White background
+              color: '#333', // Text color
+          }}
               type="text"
               placeholder="Task name"
-              value={column.newTaskName}
-              onChange={(e) => setNewTaskName(e.target.value)}
-              className="task-input"
+              value={newTaskName}
+              onChange={handleInputChange}
+              className="task-input mb-4"
             />
             
             <Select
               options={options}
               onChange={handleSelectChange}
               styles={customStyles}
+              value={options.find(option => option.value === selectedUser)}
               placeholder="Select a user"
-              className="user-select"
+              className="user-select mb-4"
             />
-            <button onClick={() => handleAddTask()} className="submit-task-button">
+            <button onClick={() => handleAddTask()}  style={{
+      backgroundColor: 'blue',
+      color: 'white',
+      padding: '10px 20px',
+      marginLeft: '10px',
+      border: 'none',
+      borderRadius: '5px',
+      cursor: 'pointer'
+    }}>
               Add
             </button>
           </div>
@@ -391,7 +825,18 @@ useEffect(() => {
 
          <button
   onClick={() => setIsAddingColumn(true)}
-  className="py-2 px-4 bg-blue-500 text-white rounded hover:bg-blue-600"
+  style={{
+    width: '150px',  // Set a fixed width
+    height: '40px',  // Set a fixed height
+    backgroundColor: 'blue',
+    color: 'white',
+    borderRadius: '5px',
+    border: 'none',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  }}
 >
   + New Column
 </button>
@@ -403,17 +848,38 @@ useEffect(() => {
       value={newColumnName}
       onChange={(e) => setNewColumnName(e.target.value)}
       placeholder="Enter column name"
-      className="px-2 py-1 border rounded"
+      //className="px-2 py-1 border rounded"
+      style={{ padding: '10px', marginRight: '10px', width: '200px' }}
+
     />
     <button
       onClick={handleAddColumn}
-      className="ml-2 py-1 px-4 bg-green-500 text-white rounded hover:bg-green-600"
+      //className="ml-2 py-1 px-4 bg-green-500 text-white rounded hover:bg-green-600"
+      style={{
+        backgroundColor: 'green',
+        color: 'white',
+        padding: '10px 20px',
+        border: 'none',
+        marginTop: '10px',
+        borderRadius: '5px',
+        cursor: 'pointer'
+      }}
     >
       Add Column
     </button>
     <button
       onClick={() => setIsAddingColumn(false)}
-      className="ml-2 py-1 px-4 bg-red-500 text-white rounded hover:bg-red-600"
+     // className="ml-2 py-1 px-4 bg-red-500 text-white rounded hover:bg-red-600"
+     style={{
+      backgroundColor: 'red',
+      color: 'white',
+      padding: '10px 20px',
+      marginLeft: '10px',
+      marginTop: '10px',
+      border: 'none',
+      borderRadius: '5px',
+      cursor: 'pointer'
+    }}
     >
       Cancel
     </button>
@@ -421,7 +887,7 @@ useEffect(() => {
   )}
         </div>
       </DragDropContext>
-    </DefaultLayout>
+    </div>
   );
 };
 

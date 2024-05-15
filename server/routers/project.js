@@ -3,7 +3,7 @@ const router = express.Router();
 const ProjectController = require("../controllers/project");
 const auth=require('../middleware/auth')
 
-router.get("/:id",auth.loggedMiddleware ,ProjectController.fetchProject)
+router.get("/:id",ProjectController.fetchProject)
 
 router.post("/invite/:projectId", auth.loggedMiddleware,auth.isManager, ProjectController.inviteUserToProject);
 

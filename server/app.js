@@ -6,9 +6,7 @@ const userRouter=require("./routers/user")
 const projectRouter=require("./routers/project")
 const tacheRouter=require("./routers/tache")
 const columnRouter=require("./routers/column")
-
 const cors = require('cors');
-
 app.use(cors())
 app.use(express.json());
 app.use(express.static('uploads'));
@@ -24,22 +22,15 @@ app.use((req, res, next) => {
   );
   next();
 });
-
-
-
-// mongoose
-//   .connect(
-//     `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.afeysny.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority&appName=Cluster0`  )
-//   .then(() => console.log("Connexion a MongoDB réussie !"))
-//   .catch((e) => console.log("Connexion a MongoDB échouée!", e));
-
-const mongoDBUri = 'mongodb://127.0.0.1:27017/TACHETY';
-mongoose.connect(mongoDBUri
-
-).then(() => console.log("connexion a MongoDB reussie!"))
-.catch((e) => console.log("connexion a MongoDB échouée!",e))
-
-
+mongoose
+  .connect(
+    `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.afeysny.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority&appName=Cluster0`  )
+  .then(() => console.log("Connexion a MongoDB réussie !"))
+  .catch((e) => console.log("Connexion a MongoDB échouée!", e));
+// const mongoDBUri = 'mongodb://127.0.0.1:27017/TACHETY';
+// mongoose.connect(mongoDBUri
+// ).then(() => console.log("connexion a MongoDB reussie!"))
+// .catch((e) => console.log("connexion a MongoDB échouée!",e))
 app.use("/", userRouter)
 app.use("/project", projectRouter)
 app.use("/tache", tacheRouter)
