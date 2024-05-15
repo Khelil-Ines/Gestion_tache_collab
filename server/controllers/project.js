@@ -113,42 +113,79 @@ const deleteProject = (req, res) => {
       });
   };
 
+// const inviteUserToProject = async (req, res, next) => {
+//   try {
+//     const { projectId} = req.params;
+//     const { email, role } = req.body;
+
+//         // Vérifier si l'utilisateur existe avec cet email
+//         const invitedUser = await User.findOne({ email });
+
+//         if (!invitedUser) {
+//             return res.status(404).json({ message: "Aucun utilisateur trouvé avec cet email" });
+//         }
+
+//         const project = await Project.findById(projectId);
+
+//         if (!project) {
+//             return res.status(404).json({ message: "Projet non trouvé" });
+//         }
+
+//         // Vérifier si l'utilisateur est déjà membre du projet
+//         const isMember = project.membres.some(member => member.utilisateur.equals(invitedUser._id));
+//         if (isMember) {
+//             return res.status(400).json({ message: "Cet utilisateur est déjà membre du projet" });
+//         }
+
+//         // Ajouter l'utilisateur en tant que membre avec le rôle spécifié
+//         project.membres.push({ utilisateur: invitedUser._id, role });
+//         invitedUser.projects.push(project._id);
+//         await invitedUser.save();
+//         await project.save();
+
+//         res.json({ message: "Utilisateur invité avec succès au projet" });
+//     } catch (error) {
+//         console.error("Erreur lors de l'invitation de l'utilisateur au projet :", error);
+//         res.status(500).json({ error: "Erreur lors de l'invitation de l'utilisateur au projet", message: error.message });
+//     }
+// };
 const inviteUserToProject = async (req, res, next) => {
   try {
-    const { projectId} = req.params;
-    const { email, role } = req.body;
+    const { projectId } = req.params;
+    const { userId, role } = req.body;
 
-        // Vérifier si l'utilisateur existe avec cet email
-        const invitedUser = await User.findOne({ email });
+    // Vérifier si l'utilisateur existe avec cet ID
+    const invitedUser = await User.findById(userId);
 
-        if (!invitedUser) {
-            return res.status(404).json({ message: "Aucun utilisateur trouvé avec cet email" });
-        }
-
-        const project = await Project.findById(projectId);
-
-        if (!project) {
-            return res.status(404).json({ message: "Projet non trouvé" });
-        }
-
-        // Vérifier si l'utilisateur est déjà membre du projet
-        const isMember = project.membres.some(member => member.utilisateur.equals(invitedUser._id));
-        if (isMember) {
-            return res.status(400).json({ message: "Cet utilisateur est déjà membre du projet" });
-        }
-
-        // Ajouter l'utilisateur en tant que membre avec le rôle spécifié
-        project.membres.push({ utilisateur: invitedUser._id, role });
-        invitedUser.projects.push(project._id);
-        await invitedUser.save();
-        await project.save();
-
-        res.json({ message: "Utilisateur invité avec succès au projet" });
-    } catch (error) {
-        console.error("Erreur lors de l'invitation de l'utilisateur au projet :", error);
-        res.status(500).json({ error: "Erreur lors de l'invitation de l'utilisateur au projet", message: error.message });
+    if (!invitedUser) {
+        return res.status(404).json({ message: "Aucun utilisateur trouvé avec cet ID" });
     }
+
+    const project = await Project.findById(projectId);
+
+    if (!project) {
+        return res.status(404).json({ message: "Projet non trouvé" });
+    }
+
+    // Vérifier si l'utilisateur est déjà membre du projet
+    const isMember = project.membres.some(member => member.utilisateur.equals(invitedUser._id));
+    if (isMember) {
+        return res.status(400).json({ message: "Cet utilisateur est déjà membre du projet" });
+    }
+
+    // Ajouter l'utilisateur en tant que membre avec le rôle spécifié
+    project.membres.push({ utilisateur: invitedUser._id, role });
+    invitedUser.projects.push(project._id);
+    await invitedUser.save();
+    await project.save();
+
+    res.json({ message: "Utilisateur invité avec succès au projet" });
+  } catch (error) {
+    console.error("Erreur lors de l'invitation de l'utilisateur au projet :", error);
+    res.status(500).json({ error: "Erreur lors de l'invitation de l'utilisateur au projet", message: error.message });
+  }
 };
+
 
 const removeMemberFromProject = async (req, res) => {
   try {

@@ -88,7 +88,7 @@ const addColumn = async (req, res) =>  {
         }
       )
 }
-const deleteColumn = (req, res) => {
+const deleteColumn =  (req, res) => {
   const columnId = req.params.id;
 
   // First find the project that contains this column and remove the column from its array
@@ -102,7 +102,6 @@ const deleteColumn = (req, res) => {
       res.status(404).json({ message: "Projet contenant la colonne non trouvé ou colonne déjà retirée!" });
       return;
     }
-
     // If the project was found and updated, then delete the column
     Column.deleteOne({ _id: columnId })
       .then(result => {
