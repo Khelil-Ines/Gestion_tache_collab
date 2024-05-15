@@ -9,7 +9,9 @@ import { useSession } from 'next-auth/react';
 import CustomAlerts from '@/components/CustomAlerts';
 import '@/css/delete.scss';
 import Select from 'react-select';
+import { SingleValue } from 'react-select'; // Ensure you import the necessary parts from react-select
 import RootLayout from '@/app/layout';
+import { BorderAllRounded } from '@mui/icons-material';
 
 
 
@@ -45,6 +47,10 @@ interface User {
   name: string;
 }
 
+interface RoleOption {
+  value: number;
+  label: string;
+}
 const ProjectDetails: NextPage = () => {
   
   const { data: session } = useSession();
@@ -62,9 +68,58 @@ const [currentColumnId, setCurrentColumnId] = useState(null);
 const [selectedUser, setSelectedUser] = useState('');
 const [newTaskName, setNewTaskName] = useState('');
 const [users, setUsers] = useState<User[]>([]); // Users state
+//const [allusers, setallUsers] = useState<User[]>([]); // Users state
 
+const [allUsers, setAllUsers] = useState([]);
+const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+const roles = [
+  { id: 1, name: "Collaborator" },
+  { id: 2, name: "Manager" },
+  { id: 3, name: "Developer" },
+  { id: 4, name: "Designer" }
+];
+// const [selectedRole, setSelectedRole] = useState('');
+const roleOptions = roles.map(role => ({
+  value: role.id,
+  label: role.name
+}));
+const [selectedRole, setSelectedRole] = useState<SingleValue<RoleOption>>(null);
 
+// Handle change for the Select component
+const handleRoleChange = (option: SingleValue<RoleOption>) => {
+  setSelectedRole(option);
+};
+const userOptions = allUsers.map(user => ({ value: user._id, label: user.email }));
+const handleAddMember = async () => {
+  if (!selectedUser) return;
 
+  try {
+    const response = await axios.post(`http://localhost:5000/project/invite/${_id}`, {
+      userId: selectedUser,
+      role: selectedRole?.label,
+  },
+      {
+        headers: {
+        'Authorization': `Bearer ${session?.user?.accessToken}`, // Assume session.accessToken is available
+      },
+    });
+    console.log('Member added successfully:', response.data);
+    setAlert({ show: true, message: "Member added successfully !", type: 'success' });
+    setShowAddMemberModal(false)
+    setSelectedRole(null);
+    await fetchColumns();
+
+    // Optional: update UI or state to reflect the new member
+  } catch (error) {
+    if (error.response?.status === 400) {
+      setAlert({ show: true, message: "This user is already a member !", type: 'warning' });
+    }else{
+    console.log(selectedUser)
+    console.error('Failed to add member:', error);
+    setAlert({ show: true, message: "Sorry, Only managers can add member :[ !", type: 'error' });
+    }
+  }
+};
 
 const [file, setFile] = useState(null); // To hold the file object
 const [fileURL, setFileURL] = useState(''); // To store the URL of the uploaded file
@@ -133,7 +188,11 @@ const closeModal = () => {
   setIsModalOpen(false);
   setSelectedTask(null);
 };
+const handleInputChange = (e) => {
+  console.log("Input Change:", e.target.value);  // Check what value is being captured
 
+  setNewTaskName(event.target.value);
+};
 // Function to handle task updates
 const handleUpdateTask = async (e) => {
   e.preventDefault();
@@ -157,7 +216,8 @@ const fetchUsers = async () => {
   try {
     const response = await axios.get('http://localhost:5000/getU'); // Make sure the URL is correct
     console.log('Users fetched:', response.data.model);
-    setUsers(response.data.model); // Assuming the response data is the array of users
+    
+    setAllUsers(response.data.model); // Assuming the response data is the array of users
   } catch (error) {
     console.error('Failed to fetch users:', error);
   }
@@ -168,7 +228,7 @@ fetchUsers();
 
 const options =  users.map(user => ({
   value: user.id,
-  label: `${user.firstName} ${user.lastName} (${user.email})`
+  label: `${user.email}`
 }));
 
 const customStyles = {
@@ -191,19 +251,23 @@ const handleAddTask = async () => {
 
   if (!currentColumnId || !selectedUser) {
     console.log('Selected user:', selectedUser);
+    setAlert({ show: true, message: 'Failed to add task. Please Fill All Fields', type: 'error' });
     console.error('No column or user selected');
     return;
 }
   try {
       const response = await axios.post(`http://localhost:5000/tache/add/${currentColumnId}`, {
-          nom: newTaskName, // Example task data
+          nom: newTaskName, 
           responsable: selectedUser    
         });
       console.log('Task added successfully:', response.data);
+      setNewTaskName('');
       // Update your UI or fetch new data as needed
       await fetchColumns();  // Make sure to implement this function to refresh your local state
+      setAlert({ show: true, message: 'Task added successfully !', type: 'success' });
 
   } catch (error) {
+    setAlert({ show: true, message: 'Failed to add task. Please Fill All Fields', type: 'error' });
       console.log('Selected user:', selectedUser);
       console.error('Failed to add task:', error);
   }
@@ -451,6 +515,7 @@ useEffect(() => {
       if (response.status === 200) {
         await fetchColumns(); // Reload columns to reflect the new column
         console.log('Column added successfully:', response.data);
+        setIsAddingColumn(false)
       } else {
         throw new Error('Failed to add column');
       }
@@ -487,16 +552,82 @@ useEffect(() => {
 
   return ( 
   <div >
- 
-      <Breadcrumb pageName="My Project" />
-      <h2>Project: {project?.model.nom}</h2>
-      {alert.show && (
+  {alert.show && (
         <CustomAlerts 
           message={alert.message}
           type={alert.type as 'error' | 'success' | 'warning'}
           onClose={() => setAlert({ show: false, message: '', type: '' })}
         />
       )}
+      <Breadcrumb pageName="My Project"  />
+     
+      <h2 className='mb-4'>Project's name : {project?.model.nom}</h2>
+     
+    
+      <button style={{
+    width: '150px',  // Set a fixed width
+    height: '40px',  // Set a fixed height
+    backgroundColor: 'blue',
+    color: 'white',
+    borderRadius: '5px',
+    marginBottom: '10px',
+    border: 'none',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  }}
+  onClick={() => setShowAddMemberModal(true)}>+ Add Member</button>
+
+{showAddMemberModal && (
+  <div>
+    <Select
+        options={userOptions}
+        onChange={handleSelectChange}
+      placeholder="Select a user"
+    />
+    <Select
+  options={roleOptions}
+  value={selectedRole}
+  onChange={handleRoleChange}
+  placeholder="Select a role"
+  className="my-react-select-container" // Apply custom styles or use className for predefined styles
+  classNamePrefix="my-react-select" // Helps with customizing all parts of the dropdown
+/>
+    {/* <select
+      id="userRole"
+      value={selectedRole}
+      onChange={(e) => setSelectedRole(e.target.value)}
+      style={{ width: '30%', padding: '8px 10px', margin: '10px 0' }}
+    >
+      <option value="">Select a role</option>
+      {roles.map((role) => (
+        <option key={role.id} value={role.name}>{role.name}</option>
+      ))}
+    </select> */}
+
+    <button style={{
+      backgroundColor: 'green',
+      color: 'white',
+      padding: '10px 20px',
+      marginLeft: '10px',
+      marginTop: '10px',
+      border: 'none',
+      borderRadius: '5px',
+      cursor: 'pointer'
+    }}  onClick={handleAddMember}>Confirm </button>
+    <button style={{
+      backgroundColor: 'red',
+      color: 'white',
+      padding: '10px 20px',
+      marginLeft: '10px',
+      marginTop: '10px',
+      border: 'none',
+      borderRadius: '5px',
+      cursor: 'pointer'
+    }} onClick={() => setShowAddMemberModal(false)}>Cancel</button>
+  </div>
+)}
       <DragDropContext onDragEnd={onDragEnd}>
         <div className="columns-container" style={{  display: 'flex',  justifyContent: 'space-around', padding: '10px' }}>
           {columns.map((column, index) => (
@@ -504,7 +635,7 @@ useEffect(() => {
               {(provided) => (
                 <div ref={provided.innerRef} {...provided.droppableProps} style={{borderRadius: '25px', margin: '8px', background: '#e2e2e2', padding: '10px', width: '250px' }}>
                   <div className="column-header" style={{  display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2>{column.model.nom}</h2>
+            <h2 style={{marginLeft: '5px', fontWeight: 'bold', color: '#0A1172', fontSize: '20px' }} >{column.model.nom}</h2>
             <button type="button" className="btn-close" onClick={() => handleDeleteColumn(column.model._id)} >
             <span class="icon-cross"></span>
  
@@ -524,9 +655,16 @@ useEffect(() => {
                             {task.nom}
                             {task.responsableDetails && (
             <>
-              <img src={task.responsableDetails.photo} alt="Responsable" style={{ width: 30, height: 30, borderRadius: '50%' }} />
-              <span>{task.responsableDetails.nom}</span>
-            </>
+<div style={{ display: 'flex', alignItems: 'center' }}>
+    <img 
+      src={task.responsableDetails.photo} 
+      alt="Responsable" 
+      style={{ width: 20, height: 20, borderRadius: '50%', marginRight: '8px' }} 
+    />
+    <span style={{ color: 'darkblue', fontSize: 12 }}>
+      {task.responsableDetails.nom}
+    </span>
+  </div>            </>
           )}
            <button
           style={{
@@ -555,10 +693,7 @@ useEffect(() => {
                     ))}
                     {isModalOpen && selectedTask && (
   <div className="modal">
-    {/* <h2>Task Details</h2>
-    <p><strong>Name:</strong> {selectedTask.nom}</p>
-    <p><strong>Description:</strong> {selectedTask.description}</p>
-    <button onClick={closeModal}>Close</button> */}
+
      <div className="grid grid-cols-5 gap-8">
       <div className="col-span-5">
         <div className="rounded-sm border border-stroke bg-white shadow-default">
@@ -589,26 +724,25 @@ useEffect(() => {
                 onChange={(e) => setSelectedTask({...selectedTask, description: e.target.value})}
                 placeholder="Description"
               ></textarea>
-              {/* <input
-  type="file"
-  onChange={handleFileChange}
-  className="w-full rounded border bg-gray px-4.5 py-3 mb-5"
-/>
-{selectedTask.filePath && (
-  <a href={`http://localhost:5000/${selectedTask.filePath}`} target="_blank" rel="noopener noreferrer">
-    Download Attached File
-  </a>
-)} */}
+
   <input
         type="file"
         onChange={handleFileChange}
         className="file-input"
       />
-      <button   type="button" onClick={handleFileUpload} className="upload-button mb-5">
+      <button   type="button" onClick={handleFileUpload} className="upload-button mb-5" style={{
+      backgroundColor: 'blue',
+      color: 'white',
+      padding: '5px 10px',
+      marginLeft: '10px',
+      border: 'none',
+      borderRadius: '5px',
+      cursor: 'pointer'
+    }}>
         Upload File
       </button>
       {error && <p className="error-message">{error}</p>}
-      {fileURL && <p>File URL: <a href={fileURL} target="_blank" rel="noopener noreferrer">View File</a></p>}
+      {fileURL && <p>File URL: <a href={fileURL} target="_blank" rel="noopener noreferrer" className="border text-white bg-blue-500">View File</a></p>}
 
               <div className="flex justify-end">
                 <button type="button" onClick={closeModal} className="border px-6 py-2 mr-4">Cancel</button>
@@ -641,13 +775,22 @@ useEffect(() => {
           + Add Task
         </button>
         {column.isAddingTask && (
-          <div className="add-task-form">
+          <div className="add-task-form mb-4 border px-2 py-2 mr-4 bg-blue-100" style={{borderRadius : 20}}>
             <input
+             style={{
+              width: '100%', // Full width
+              padding: '8px 10px', // Comfortable padding
+              fontFamily: 'Arial, sans-serif', // Font family for consistency
+              border: '1px solid #ccc', // Subtle border
+              borderRadius: '4px', // Rounded corners
+              backgroundColor: '#fff', // White background
+              color: '#333', // Text color
+          }}
               type="text"
               placeholder="Task name"
-              value={column.newTaskName}
-              onChange={(e) => setNewTaskName(e.target.value)}
-              className="task-input"
+              value={newTaskName}
+              onChange={handleInputChange}
+              className="task-input mb-4"
             />
             
             <Select
@@ -656,9 +799,17 @@ useEffect(() => {
               styles={customStyles}
               value={options.find(option => option.value === selectedUser)}
               placeholder="Select a user"
-              className="user-select"
+              className="user-select mb-4"
             />
-            <button onClick={() => handleAddTask()} className="submit-task-button">
+            <button onClick={() => handleAddTask()}  style={{
+      backgroundColor: 'blue',
+      color: 'white',
+      padding: '10px 20px',
+      marginLeft: '10px',
+      border: 'none',
+      borderRadius: '5px',
+      cursor: 'pointer'
+    }}>
               Add
             </button>
           </div>
@@ -709,6 +860,7 @@ useEffect(() => {
         color: 'white',
         padding: '10px 20px',
         border: 'none',
+        marginTop: '10px',
         borderRadius: '5px',
         cursor: 'pointer'
       }}
@@ -723,6 +875,7 @@ useEffect(() => {
       color: 'white',
       padding: '10px 20px',
       marginLeft: '10px',
+      marginTop: '10px',
       border: 'none',
       borderRadius: '5px',
       cursor: 'pointer'

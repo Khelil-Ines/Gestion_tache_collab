@@ -47,8 +47,7 @@
   }
   .new-column-button-container {
     grid-column: span 1; // Ensures the button only takes up one column width
-    border: 1px solid black;
-
+    
   }
   
    //task details
@@ -56,11 +55,11 @@
     position: fixed;
     top: 30%;
     left: 50%;
-    transform: translate(-50%, -20%);
+    transform: translate(-30%, -20%);
     background: white;
-    padding: 20px;
+    padding: 10px;
     z-index: 1000;
-    border: 1px solid black;
+    border: 1px solid grey;
     border-radius: 25px;
   }
   
@@ -69,9 +68,9 @@
     margin: 0;
     border: 0;
     padding: 0;
-    background: hsl(216, 100, 50);
-    border-radius: 50%;
-    width: 30;
+    background: blue;
+    border-radius: 30%;
+    width: 20px;
     height: 20px;
     display: flex;
     flex-flow: column nowrap;
