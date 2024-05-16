@@ -18,6 +18,12 @@ const userSchema =  mongoose.Schema({
         required: false
     }],
     bio : {type : String, default: ""},
-})
+    notifications: [
+        {
+          message: { type: String, required: true },
+          date: { type: Date, default: Date.now },
+          read: { type: Boolean, default: false },
+        }
+      ],})
 
 module.exports = mongoose.model("User", userSchema)

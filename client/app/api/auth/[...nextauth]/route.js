@@ -74,6 +74,7 @@ export const authOptions = {
               descriptionprofile: response.data.descriptionprofile,
               projects:  response.data.projects,
               accessToken: response.data.token,
+              notifications: response.data.notifications,
               
             };
             console.log("Authentication successful. Server response:", response.data);
@@ -96,6 +97,7 @@ export const authOptions = {
         token.accessToken = user.accessToken; // Store the token into the JWT
         token.user = user; 
         token.projects = user.projects || [];
+        token.notifications = user.notifications || [];
       }
       return token;
     },
@@ -105,7 +107,8 @@ export const authOptions = {
       maxAge: 24 * 60 * 60;
       session.user = {
         ...session.user,
-        projects: token.projects || []
+        projects: token.projects || [],
+        notifications: token.notifications || [],
       };
       return session;
 
