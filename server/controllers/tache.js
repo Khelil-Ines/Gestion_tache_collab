@@ -1,9 +1,42 @@
 const Tache = require("../models/tache");
 const Column = require("../models/column");
 const multer = require('multer');
-const moment = require('moment-timezone');
+// const moment = require('moment-timezone');
 const path = require('path');
 const upload = require('../middleware/multer');
+const User = require('../models/user');
+
+const Task = require('../models/tache');
+const moment = require('moment');
+
+const addNotification = async (userId, message) => {
+  try {
+    await User.findByIdAndUpdate(userId, {
+      $push: { notifications: { message } }
+    });
+  } catch (error) {
+    console.error('Error adding notification:', error);
+  }
+};
+
+const notifyTasksDueSoon = async () => {
+  const tomorrow = moment().add(1, 'day').startOf('day').toDate();
+  const dayAfterTomorrow = moment().add(2, 'days').startOf('day').toDate();
+
+  const tasks = await Task.find({
+    finishedAt: { $gte: tomorrow, $lt: dayAfterTomorrow }
+  }).populate('responsable');
+
+  tasks.forEach(async (task) => {
+    const message = `Task "${task.nom}" is due soon.`;
+    await addNotification(task.responsable._id, message);
+  });
+};
+
+// Schedule this function to run every day at midnight
+const schedule = require('node-schedule');
+schedule.scheduleJob('0 0 * * *', notifyTasksDueSoon);
+console.log('Task notification scheduler started');
 
 // const storage = multer.diskStorage({
 //   destination: function (req, file, cb) {
@@ -47,7 +80,12 @@ const addTache = async (req, res) => {
       const newTache = new Tache(tacheData);
       await newTache.populate('responsable');
       await newTache.save(); // Sauvegarde la tâche d'abord
+      console.log('Nouvelle tâche créée :', newTache);
+      console.log('resp', newTache.responsable._id);
       
+
+      await addNotification(newTache.responsable._id, `A new task has been assigned to you: ${newTache.nom}`); // Send a notification to the responsible person
+
       column.taches.push(newTache._id); // Ajoute l'ID de la tâche au tableau de tâches de la colonne
       await column.save(); // Sauvegarde la colonne avec la nouvelle tâche
       
@@ -360,6 +398,8 @@ const moveTacheToColumn = async (req, res) => {
     res.status(500).json({ error: 'Erreur lors du déplacement de la tâche', message: error.message });
   }
 };
+
+
 
 
   module.exports = {

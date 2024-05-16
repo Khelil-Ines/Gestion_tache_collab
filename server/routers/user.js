@@ -10,5 +10,6 @@ router.get("/projects", auth.loggedMiddleware, userController.projectsUser);
 router.post("/login", userController.login);
 router.get("/getU", userController.getUser);
 router.get("/:id",userController.fetchUser);
+router.put("/users/:id/mark-as-read", userController.markasread);
 
 module.exports = router;

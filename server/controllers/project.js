@@ -3,6 +3,15 @@ const moment = require('moment-timezone');
 const User = require("../models/user");
 const { populate } = require("dotenv");
 
+const addNotification = async (userId, message) => {
+  try {
+    await User.findByIdAndUpdate(userId, {
+      $push: { notifications: { message } }
+    });
+  } catch (error) {
+    console.error('Error adding notification:', error);
+  }
+};
 
 const addProject = async (req, res, next) => {
     try {
@@ -20,7 +29,7 @@ const addProject = async (req, res, next) => {
         utilisateur: userId,
         role: "Manager",
     });
-    
+    await addNotification(userId, `You have been added to a new project : ${ newProject.nom }`);
     user.projects.push(newProject._id); 
         await user.save();
       newProject.save()
@@ -178,7 +187,7 @@ const inviteUserToProject = async (req, res, next) => {
     invitedUser.projects.push(project._id);
     await invitedUser.save();
     await project.save();
-
+    await addNotification(userId, 'You have been added to a new project.');
     res.json({ message: "Utilisateur invité avec succès au projet" });
   } catch (error) {
     console.error("Erreur lors de l'invitation de l'utilisateur au projet :", error);
@@ -210,7 +219,7 @@ const removeMemberFromProject = async (req, res) => {
 
       // Enregistre les modifications apportées au projet
       await project.save();
-
+      await addNotification(memberId, 'You have been deleted from a the project.', project.nom);
       res.json({ message: "Membre supprimé avec succès du projet." });
   } catch (error) {
       console.error('Erreur lors de la suppression du membre du projet :', error);
