@@ -23,6 +23,9 @@ const projectSchema = mongoose.Schema({
         required: false,
     }],
     createdAt: { type: Date, default: () => moment().toDate() },
+    finishedAt: { type: Date, required: false },
+    duree_maximale: {type: Number, required: false},
+    duree_reelle:{type: Number, required: false},
 });
 
 module.exports = mongoose.model("Project", projectSchema);

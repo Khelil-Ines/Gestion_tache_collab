@@ -10,7 +10,9 @@ const tacheSchema = mongoose.Schema({
     },
     createdAt: { type: Date, default: () => moment().toDate() },
     file: [{ type: String }],
-    date_limite:{type :Date, required:false},
+    finishedAt: { type: Date, required: false },
+    duree_maximale: {type: Number, required: false},
+    duree_reelle:{type: Number, required: false},
 
 });
 

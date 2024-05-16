@@ -19,7 +19,7 @@ exports.signup = (req, res, next) => {
       firstname : req.body.firstname,
       role: req.body.role,
       descriptionprofile: "No description provided",
-      photo: defaultImagePath
+      photo: "uploads/unknown.png"
     });
     user
       .save()

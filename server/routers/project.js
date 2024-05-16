@@ -7,7 +7,7 @@ router.get("/:id",ProjectController.fetchProject)
 
 router.post("/invite/:projectId", auth.loggedMiddleware,auth.isManager, ProjectController.inviteUserToProject);
 
-router.patch("/:id", auth.loggedMiddleware,auth.isManager, ProjectController.updateProject)
+router.patch("/:id", auth.loggedMiddleware, ProjectController.updateProject)
 
 router.post("/add",auth.loggedMiddleware, ProjectController.addProject);
 
