@@ -1,10 +1,15 @@
+"use client";
 import { ApexOptions } from "apexcharts";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
+import axios from "axios";
+import { useSession } from "next-auth/react";
+import moment from "moment";
 
-const ReactApexChart = dynamic(() => import('react-apexcharts'), {
-  ssr: false
+const ReactApexChart = dynamic(() => import("react-apexcharts"), {
+  ssr: false,
 });
+
 const options: ApexOptions = {
   legend: {
     show: false,
@@ -24,7 +29,6 @@ const options: ApexOptions = {
       left: 0,
       opacity: 0.1,
     },
-
     toolbar: {
       show: false,
     },
@@ -51,10 +55,6 @@ const options: ApexOptions = {
     width: [2, 2],
     curve: "straight",
   },
-  // labels: {
-  //   show: false,
-  //   position: "top",
-  // },
   grid: {
     xaxis: {
       lines: {
@@ -116,6 +116,15 @@ const options: ApexOptions = {
     min: 0,
     max: 100,
   },
+  tooltip: {
+    shared: true,
+    intersect: false,
+    y: {
+      formatter: function (val) {
+        return val + " created";
+      },
+    },
+  },
 };
 
 interface ChartOneState {
@@ -126,26 +135,86 @@ interface ChartOneState {
 }
 
 const ChartOne: React.FC = () => {
+  const { data: session } = useSession();
   const [state, setState] = useState<ChartOneState>({
     series: [
       {
-        name: "Product One",
-        data: [23, 11, 22, 27, 13, 22, 37, 21, 44, 22, 30, 45],
+        name: "Projects",
+        data: Array(12).fill(0), // Initialize data array with 12 zeros
       },
-
       {
-        name: "Product Two",
-        data: [30, 25, 36, 30, 45, 35, 64, 52, 59, 36, 39, 51],
+        name: "Tasks",
+        data: Array(12).fill(0), // Initialize data array with 12 zeros
       },
     ],
   });
 
-  const handleReset = () => {
-    setState((prevState) => ({
-      ...prevState,
-    }));
-  };
-  handleReset;
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch User Projects
+        const projectsResponse = await axios.get("http://localhost:5000/projects", {
+          headers: { Authorization: `Bearer ${session?.user?.accessToken}` },
+        });
+        const projects = projectsResponse.data.projects;
+
+        // Filter projects the user is a part of
+        const userProjects = projects.filter(project =>
+          project.membres.some(member => member.utilisateur === session?.user?._id)
+        );
+
+        // Initialize arrays to hold counts of projects and tasks created each month of the year
+        const projectCounts = Array(12).fill(0);
+        const taskCounts = Array(12).fill(0);
+
+        // Count projects created each month
+        userProjects.forEach(project => {
+          const month = moment(project.createdAt).month();
+          projectCounts[month]++;
+        });
+
+        // Fetch Columns and Tasks for each project
+        const columnsPromises = userProjects.flatMap(project =>
+          project.columns.map(columnId =>
+            axios.get(`http://localhost:5000/column/${columnId}`)
+          )
+        );
+        const columnsResponses = await Promise.all(columnsPromises);
+        const columns = columnsResponses.map(response => response.data);
+
+        for (const column of columns) {
+          const tasksPromises = column.model.taches.map(taskId =>
+            axios.get(`http://localhost:5000/tache/${taskId}`)
+          );
+          const tasksResponses = await Promise.all(tasksPromises);
+          const tasks = tasksResponses.map(response => response.data.model);
+
+          tasks.forEach(task => {
+            const month = moment(task.createdAt).month();
+            taskCounts[month]++;
+          });
+        }
+
+        // Update state with the counts
+        setState({
+          series: [
+            {
+              name: "Projects",
+              data: projectCounts,
+            },
+            {
+              name: "Tasks",
+              data: taskCounts,
+            },
+          ],
+        });
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+
+    fetchData();
+  }, [session]);
 
   return (
     <div className="col-span-12 rounded-sm border border-stroke bg-white px-5 pb-5 pt-7.5 shadow-default dark:border-strokedark dark:bg-boxdark sm:px-7.5 xl:col-span-8">
@@ -156,8 +225,8 @@ const ChartOne: React.FC = () => {
               <span className="block h-2.5 w-full max-w-2.5 rounded-full bg-primary"></span>
             </span>
             <div className="w-full">
-              <p className="font-semibold text-primary">Total Revenue</p>
-              <p className="text-sm font-medium">12.04.2022 - 12.05.2022</p>
+              <p className="font-semibold text-primary">Total Projects</p>
+              <p className="text-sm font-medium">This Year</p>
             </div>
           </div>
           <div className="flex min-w-47.5">
@@ -165,8 +234,8 @@ const ChartOne: React.FC = () => {
               <span className="block h-2.5 w-full max-w-2.5 rounded-full bg-secondary"></span>
             </span>
             <div className="w-full">
-              <p className="font-semibold text-secondary">Total Sales</p>
-              <p className="text-sm font-medium">12.04.2022 - 12.05.2022</p>
+              <p className="font-semibold text-secondary">Total Tasks</p>
+              <p className="text-sm font-medium">This Year</p>
             </div>
           </div>
         </div>

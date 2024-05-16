@@ -546,7 +546,7 @@ const TableOne = () => {
                     placeholder="Completion"
                   />
                 </div>
-                <div className="mb-4">
+                {/* <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700">Members</label>
                   {newProject.membres.map((membre, index) => (
                     <div key={index} className="mb-3">
@@ -580,8 +580,8 @@ const TableOne = () => {
                     }
                   >
                     + Add Member
-                  </button>
-                </div>
+                  </button> */}
+                {/* </div> */}
                 <div >
                   <button
                     type="button"

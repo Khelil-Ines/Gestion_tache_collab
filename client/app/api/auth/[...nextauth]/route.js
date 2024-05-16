@@ -69,7 +69,6 @@ export const authOptions = {
               _id: response.data._id,
               firstname: response.data.firstname,
               lastname: response.data.lastname,
-              role: response.data.role,
               photo: response.data.photo,
               descriptionprofile: response.data.descriptionprofile,
               projects:  response.data.projects,

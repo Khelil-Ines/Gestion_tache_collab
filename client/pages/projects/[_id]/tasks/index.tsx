@@ -13,6 +13,8 @@ import { SingleValue } from 'react-select'; // Ensure you import the necessary p
 import RootLayout from '@/app/layout';
 import { BorderAllRounded } from '@mui/icons-material';
 import moment from 'moment';
+import { getSession } from 'next-auth/react'; // Import getSession from next-auth
+
 
 interface Task {
   id: string;
@@ -74,6 +76,8 @@ const ProjectDetails: NextPage = () => {
   const [fileURL, setFileURL] = useState(''); // To store the URL of the uploaded file
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
+  const [isManager, setIsManager] = useState(false);
+
 
   const roles = [
     { id: 1, name: "Collaborator" },
@@ -397,6 +401,8 @@ const ProjectDetails: NextPage = () => {
   useEffect(() => {
     const fetchProjectDetails = async () => {
       if (!_id || typeof _id !== 'string') return;
+      const session = await getSession(); // Fetch the session explicitly
+
       try {
         const projectResponse = await axios.get<Project>(`http://localhost:5000/project/${_id}`);
         setProject(projectResponse.data);
@@ -408,7 +414,8 @@ const ProjectDetails: NextPage = () => {
           role: member.role,
           photo: `http://localhost:5000/${member.utilisateur.photo.replace(/\\/g, '/')}`
         }));
-
+        console.log("memberDetails:", memberDetails); // Log member details
+        console.log("session.user._id:", session?.user?._id); // Log current user's ID
         setUsers(memberDetails);
         const columnsPromises = projectResponse.data.model.columns.map(columnId =>
           axios.get<Column>(`http://localhost:5000/column/${columnId}`)
@@ -426,8 +433,15 @@ const ProjectDetails: NextPage = () => {
           };
         }));
         setColumns(columnsWithTasks);
+        const currentUser = memberDetails.find(member => member.id === session?.user?._id);
+        console.log('Current user:', currentUser);
+        if (currentUser && currentUser.role === "Manager" || currentUser &&  currentUser.role === "manager") {
+          setIsManager(true);
+        } else {
+          setIsManager(false);
+        }
+       
         setLoading(false);
-        fetchColumns();
       } catch (error) {
         console.error("Error fetching project details:", error);
         setError("Failed to load project details. Please try again later.");
@@ -436,6 +450,7 @@ const ProjectDetails: NextPage = () => {
     };
     fetchProjectDetails();
   }, [_id]);
+  
 
   const onDragEnd = async (result) => {
     const { source, destination, draggableId } = result;
@@ -815,23 +830,26 @@ const ProjectDetails: NextPage = () => {
               )}
             </Droppable>
           ))}
-          <button
-            onClick={() => setIsAddingColumn(true)}
-            style={{
-              width: '150px',  // Set a fixed width
-              height: '40px',  // Set a fixed height
-              backgroundColor: 'blue',
-              color: 'white',
-              borderRadius: '5px',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            + New Column
-          </button>
+
+{isManager && ( // Only show the button if the user is a manager
+  <button
+    onClick={() => setIsAddingColumn(true)}
+    style={{
+      width: '150px',  // Set a fixed width
+      height: '40px',  // Set a fixed height
+      backgroundColor: 'blue',
+      color: 'white',
+      borderRadius: '5px',
+      border: 'none',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}
+  >
+    + New Column
+  </button>
+)}
           {isAddingColumn && (
             <div className="my-4">
               <input
