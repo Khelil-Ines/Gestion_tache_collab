@@ -1,6 +1,10 @@
+"use client";
 import { ApexOptions } from "apexcharts";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import ReactApexChart from "react-apexcharts";
+import axios from "axios";
+import { useSession } from "next-auth/react";
+import moment from "moment";
 
 const options: ApexOptions = {
   colors: ["#3C50E0", "#80CAEE"],
@@ -16,7 +20,6 @@ const options: ApexOptions = {
       enabled: false,
     },
   },
-
   responsive: [
     {
       breakpoint: 1536,
@@ -42,7 +45,6 @@ const options: ApexOptions = {
   dataLabels: {
     enabled: false,
   },
-
   xaxis: {
     categories: ["M", "T", "W", "T", "F", "S", "S"],
   },
@@ -52,13 +54,30 @@ const options: ApexOptions = {
     fontFamily: "Satoshi",
     fontWeight: 500,
     fontSize: "14px",
-
     markers: {
       radius: 99,
     },
   },
   fill: {
     opacity: 1,
+  },
+  markers: {
+    size: 5,
+    colors: ["#3C50E0", "#80CAEE"],
+    strokeColors: "#fff",
+    strokeWidth: 2,
+    hover: {
+      size: 7,
+    },
+  },
+  tooltip: {
+    shared: true,
+    intersect: false,
+    y: {
+      formatter: function (val) {
+        return val + "created";
+      },
+    },
   },
 };
 
@@ -70,32 +89,93 @@ interface ChartTwoState {
 }
 
 const ChartTwo: React.FC = () => {
+  const { data: session } = useSession();
   const [state, setState] = useState<ChartTwoState>({
     series: [
       {
-        name: "Sales",
-        data: [44, 55, 41, 67, 22, 43, 65],
+        name: "Projects",
+        data: [0, 0, 0, 0, 0, 0, 0],
       },
       {
-        name: "Revenue",
-        data: [13, 23, 20, 8, 13, 27, 15],
+        name: "Tasks",
+        data: [0, 0, 0, 0, 0, 0, 0],
       },
     ],
   });
 
-  const handleReset = () => {
-    setState((prevState) => ({
-      ...prevState,
-    }));
-  };
-  handleReset;
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch User Projects
+        const projectsResponse = await axios.get("http://localhost:5000/projects", {
+          headers: { Authorization: `Bearer ${session?.user?.accessToken}` },
+        });
+        const projects = projectsResponse.data.projects;
+
+        // Filter projects the user is a part of
+        const userProjects = projects.filter(project =>
+          project.membres.some(member => member.utilisateur === session?.user?._id)
+        );
+
+        // Initialize arrays to hold counts of projects and tasks created each day of the week
+        const projectCounts = Array(7).fill(0);
+        const taskCounts = Array(7).fill(0);
+
+        // Count projects created on each day of the week
+        userProjects.forEach(project => {
+          const day = moment(project.createdAt).day();
+          projectCounts[day]++;
+        });
+
+        // Fetch Columns and Tasks for each project
+        const columnsPromises = userProjects.flatMap(project =>
+          project.columns.map(columnId =>
+            axios.get(`http://localhost:5000/column/${columnId}`)
+          )
+        );
+        const columnsResponses = await Promise.all(columnsPromises);
+        const columns = columnsResponses.map(response => response.data);
+
+        for (const column of columns) {
+          const tasksPromises = column.model.taches.map(taskId =>
+            axios.get(`http://localhost:5000/tache/${taskId}`)
+          );
+          const tasksResponses = await Promise.all(tasksPromises);
+          const tasks = tasksResponses.map(response => response.data.model);
+
+          tasks.forEach(task => {
+            const day = moment(task.createdAt).day();
+            taskCounts[day]++;
+          });
+        }
+
+        // Update state with the counts
+        setState({
+          series: [
+            {
+              name: "Projects",
+              data: projectCounts,
+            },
+            {
+              name: "Tasks",
+              data: taskCounts,
+            },
+          ],
+        });
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+
+    fetchData();
+  }, [session]);
 
   return (
     <div className="col-span-12 rounded-sm border border-stroke bg-white p-7.5 shadow-default dark:border-strokedark dark:bg-boxdark xl:col-span-4">
       <div className="mb-4 justify-between gap-4 sm:flex">
         <div>
           <h4 className="text-xl font-semibold text-black dark:text-white">
-            Profit this week
+            Created lately
           </h4>
         </div>
         <div>

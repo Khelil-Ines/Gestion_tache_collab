@@ -1,23 +1,22 @@
+"use client";
 import { ApexOptions } from "apexcharts";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import ReactApexChart from "react-apexcharts";
-
-interface ChartThreeState {
-  series: number[];
-}
+import axios from "axios";
+import { useSession } from "next-auth/react";
+import moment from "moment";
 
 const options: ApexOptions = {
   chart: {
     fontFamily: "Satoshi, sans-serif",
     type: "donut",
   },
-  colors: ["#3C50E0", "#6577F3", "#8FD0EF", "#0FADCF"],
-  labels: ["Desktop", "Tablet", "Mobile", "Unknown"],
+  colors: ["#28a745", "#dc3545", "#ff9800", "#0FADCF"], // Updated colors: Green, Red, Orange, Default
+  labels: ["Completed", "Overdue", "In Progress", "Unknown"],
   legend: {
     show: false,
     position: "bottom",
   },
-
   plotOptions: {
     pie: {
       donut: {
@@ -50,24 +49,75 @@ const options: ApexOptions = {
 };
 
 const ChartThree: React.FC = () => {
-  const [state, setState] = useState<ChartThreeState>({
-    series: [65, 34, 12, 56],
+  const { data: session } = useSession();
+  const [state, setState] = useState({
+    series: [0, 0, 0, 0], // Initial state for series
   });
 
-  const handleReset = () => {
-    setState((prevState) => ({
-      ...prevState,
-      series: [65, 34, 12, 56],
-    }));
-  };
-  handleReset;
+  useEffect(() => {
+    const fetchTaskData = async () => {
+      try {
+        // Fetch User Projects
+        const projectsResponse = await axios.get("http://localhost:5000/projects", {
+          headers: { Authorization: `Bearer ${session?.user?.accessToken}` },
+        });
+        const projects = projectsResponse.data.projects;
+
+        // Filter projects the user is a part of
+        const userProjects = projects.filter(project =>
+          project.membres.some(member => member.utilisateur === session?.user?._id)
+        );
+
+        let userTasks = [];
+        let completedTaskIds = new Set();
+
+        // Fetch Columns and Tasks for each project
+        const columnsPromises = userProjects.flatMap(project =>
+          project.columns.map(columnId =>
+            axios.get(`http://localhost:5000/column/${columnId}`)
+          )
+        );
+        const columnsResponses = await Promise.all(columnsPromises);
+        const columns = columnsResponses.map(response => response.data);
+
+        for (const column of columns) {
+          if (column.model.nom === "Done") {
+            column.model.taches.forEach(taskId => completedTaskIds.add(taskId));
+          }
+          const tasksPromises = column.model.taches.map(taskId =>
+            axios.get(`http://localhost:5000/tache/${taskId}`)
+          );
+          const tasksResponses = await Promise.all(tasksPromises);
+          const tasks = tasksResponses.map(response => response.data.model);
+
+          userTasks = userTasks.concat(tasks.filter(task => task.responsable === session?.user?._id));
+        }
+
+        const totalTasks = userTasks.length;
+        const completedTasks = userTasks.filter(task => completedTaskIds.has(task._id)).length;
+        const overdueTasks = userTasks.filter(task => {
+          const taskDueDate = moment(task.createdAt).add(task.duree_maximale, 'days');
+          return moment().isAfter(taskDueDate) && !completedTaskIds.has(task._id);
+        }).length;
+        const tasksInProgress = totalTasks - (completedTasks + overdueTasks);
+
+        setState({
+          series: [completedTasks, overdueTasks, tasksInProgress, 0], // Unknown is set to 0
+        });
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+
+    fetchTaskData();
+  }, [session]);
 
   return (
     <div className="col-span-12 rounded-sm border border-stroke bg-white px-5 pb-5 pt-7.5 shadow-default dark:border-strokedark dark:bg-boxdark sm:px-7.5 xl:col-span-5">
       <div className="mb-3 justify-between gap-4 sm:flex">
         <div>
           <h5 className="text-xl font-semibold text-black dark:text-white">
-            Visitors Analytics
+            Task Statistics
           </h5>
         </div>
         <div>
@@ -121,28 +171,28 @@ const ChartThree: React.FC = () => {
       <div className="-mx-8 flex flex-wrap items-center justify-center gap-y-3">
         <div className="w-full px-8 sm:w-1/2">
           <div className="flex w-full items-center">
-            <span className="mr-2 block h-3 w-full max-w-3 rounded-full bg-primary"></span>
+            <span className="mr-2 block h-3 w-full max-w-3 rounded-full bg-[#28a745]"></span>
             <p className="flex w-full justify-between text-sm font-medium text-black dark:text-white">
-              <span> Desktop </span>
-              <span> 65% </span>
+              <span> Completed </span>
+              <span> {state.series[0]}% </span>
             </p>
           </div>
         </div>
         <div className="w-full px-8 sm:w-1/2">
           <div className="flex w-full items-center">
-            <span className="mr-2 block h-3 w-full max-w-3 rounded-full bg-[#6577F3]"></span>
+            <span className="mr-2 block h-3 w-full max-w-3 rounded-full bg-[#dc3545]"></span>
             <p className="flex w-full justify-between text-sm font-medium text-black dark:text-white">
-              <span> Tablet </span>
-              <span> 34% </span>
+              <span> Overdue </span>
+              <span> {state.series[1]}% </span>
             </p>
           </div>
         </div>
         <div className="w-full px-8 sm:w-1/2">
           <div className="flex w-full items-center">
-            <span className="mr-2 block h-3 w-full max-w-3 rounded-full bg-[#8FD0EF]"></span>
+            <span className="mr-2 block h-3 w-full max-w-3 rounded-full bg-[#ff9800]"></span>
             <p className="flex w-full justify-between text-sm font-medium text-black dark:text-white">
-              <span> Mobile </span>
-              <span> 45% </span>
+              <span> In Progress </span>
+              <span> {state.series[2]}% </span>
             </p>
           </div>
         </div>
@@ -151,7 +201,7 @@ const ChartThree: React.FC = () => {
             <span className="mr-2 block h-3 w-full max-w-3 rounded-full bg-[#0FADCF]"></span>
             <p className="flex w-full justify-between text-sm font-medium text-black dark:text-white">
               <span> Unknown </span>
-              <span> 12% </span>
+              <span> {state.series[3]}% </span>
             </p>
           </div>
         </div>
