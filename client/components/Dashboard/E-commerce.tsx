@@ -1,39 +1,9 @@
-// "use client";
-
-// import { signOut } from "next-auth/react";
-// import { useSession } from "next-auth/react";
-
-// export default function Dashboard() {
-//   const { data: session } = useSession();
-//   console.log("Session object:", session);
-
-//   return (
-//     <div className="grid place-items-center h-screen">
-//       <div className="shadow-lg p-8 bg-zince-300/10 flex flex-col gap-2 my-6">
-//         <div>
-//           Name: <span className="font-bold">{session?.user?.firstname}</span>
-//         </div>
-//         <div>
-//           Email: <span className="font-bold">{session?.user?.email}</span>
-//         </div>
-//         <div>
-//           Role: <span className="font-bold">{session?.user?.role}</span>
-//         </div>
-//         <button
-//           onClick={() => signOut()}
-//           className="bg-red-500 text-white font-bold px-6 py-2 mt-3"
-//         >
-//           Log Out
-//         </button>
-//       </div>
-//     </div>
-//   );
-// }
-
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 import CardDataStats from "../CardDataStats";
 import dynamic from "next/dynamic";
+import { useSession } from "next-auth/react";
 
 const ChatCard = dynamic(() => import('../Chat/ChatCard'), {
   ssr: false, // This will only render the component on the client-side
@@ -58,11 +28,58 @@ const ChartTwo = dynamic(() => import('../Charts/ChartTwo'), {
 const ChartThree = dynamic(() => import('../Charts/ChartThree'), {
   ssr: false, // This will only render the component on the client-side
 });
+
 const Dashboard: React.FC = () => {
+  const { data: session } = useSession();
+  const [totalViews, setTotalViews] = useState(0);
+  const [totalProfit, setTotalProfit] = useState(0);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const [totalUsers, setTotalUsers] = useState(0);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch Projects Data
+        const projectsResponse = await axios.get("http://localhost:5000/projects", {
+          headers: { Authorization: `Bearer ${session?.user?.accessToken}` },
+        });
+        const projects = projectsResponse.data.projects;
+console.log("projects", projectsResponse.data.projects)
+        // Fetch Tasks Data
+        const tasksResponse = await axios.get("http://localhost:5000/tache/taches/all", {
+          headers: { Authorization: `Bearer ${session?.user?.accessToken}` },
+        });
+        const tasks = tasksResponse.data.model;
+        console.log("tasks", tasksResponse.data.model)
+
+        // Fetch Users Data
+        const usersResponse = await axios.get("http://localhost:5000/getU", {
+          headers: { Authorization: `Bearer ${session?.user?.accessToken}` },
+        });
+        const users = usersResponse.data;
+        console.log("users", usersResponse.data)
+
+        // Calculate statistics
+        setTotalViews(projects.length);
+        console.log("total projects", projects.length)
+
+        setTotalProfit(tasks.length); // Example calculation
+        console.log("calcule", tasks.length * 100)
+
+        setTotalProducts(projects.reduce((sum, project) => sum + project.products.length, 0));
+        setTotalUsers(users.length);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+
+    fetchData();
+  }, [session]);
+
   return (
     <>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-4 2xl:gap-7.5">
-        <CardDataStats title="Total views" total="$3.456K" rate="0.43%" levelUp>
+        <CardDataStats title="Total projects" total={totalViews.toString()} rate="0.43%" levelUp>
           <svg
             className="fill-primary dark:fill-white"
             width="22"
@@ -81,7 +98,7 @@ const Dashboard: React.FC = () => {
             />
           </svg>
         </CardDataStats>
-        <CardDataStats title="Total Profit" total="$45,2K" rate="4.35%" levelUp>
+        <CardDataStats title="Total Tasks" total={`${totalProfit}`} rate="4.35%" levelUp>
           <svg
             className="fill-primary dark:fill-white"
             width="20"
@@ -104,7 +121,7 @@ const Dashboard: React.FC = () => {
             />
           </svg>
         </CardDataStats>
-        <CardDataStats title="Total Product" total="2.450" rate="2.59%" levelUp>
+        <CardDataStats title="Total Product" total={totalProducts.toString()} rate="2.59%" levelUp>
           <svg
             className="fill-primary dark:fill-white"
             width="22"
@@ -123,7 +140,7 @@ const Dashboard: React.FC = () => {
             />
           </svg>
         </CardDataStats>
-        <CardDataStats title="Total Users" total="3.456" rate="0.95%" levelDown>
+        <CardDataStats title="Total Users" total={totalUsers.toString()} rate="0.95%" levelDown>
           <svg
             className="fill-primary dark:fill-white"
             width="22"
@@ -152,7 +169,6 @@ const Dashboard: React.FC = () => {
         <ChartOne />
         <ChartTwo />
         <ChartThree />
-        <MapOne />
         <div className="col-span-12 xl:col-span-8">
           <TableOne />
         </div>

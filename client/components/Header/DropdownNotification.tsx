@@ -142,7 +142,7 @@ const DropdownNotification = () => {
                 href="#"
               >
                 <p className="text-sm">
-                  <span className="text-black dark:text-white ">
+                  <span className="text-black dark:text-white font-bold ">
                     {notification.message}
                   </span>
                 </p>
