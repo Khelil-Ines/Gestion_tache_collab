@@ -18,7 +18,7 @@ const addProject = async (req, res, next) => {
       const newProject= new Project(projectData);
       newProject.membres.push({
         utilisateur: userId,
-        role: "manager",
+        role: "Manager",
     });
     
     user.projects.push(newProject._id); 

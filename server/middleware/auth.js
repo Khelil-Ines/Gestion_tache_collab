@@ -44,7 +44,7 @@ module.exports.isManager = async (req, res, next) => {
 
     // Vérifie le rôle de l'utilisateur dans le projet
     const userRoleInProject = project.membres.find(member => member.utilisateur.equals(userId));
-    if (!userRoleInProject || userRoleInProject.role !== "manager") {
+    if (!userRoleInProject ||  userRoleInProject.role !== "Manager"  ) {
       return res.status(403).json({ error: "Vous n'avez pas les autorisations requises pour cette action. Il faut etre le manager de ce projet" });
     }
 
