@@ -30,13 +30,20 @@ export default function RegisterForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
- 
-
     if (!firstname || !lastname || !email || !password) {
       setError("All fields are necessary.");
       return;
     }
   
+    if (password.length < 5) {
+      setError("Password must be at least 5 characters long.");
+      return;
+    }
+  
+    // if (password !== confirmPassword) {
+    //   setError("Passwords do not match.");
+    //   return;
+    // }
 
     try {
       const res = await fetch("/api/register", {
@@ -264,7 +271,7 @@ export default function RegisterForm() {
                 Sign Up to TÂCHETY
               </h2>
 
-              <form onSubmit={(e) => handleSubmit(e)}>
+              <form onSubmit={(e) => handleSubmit(e) } noValidate>
                 <div className="relative mb-4">
                   <TextField
                     autoFocus
@@ -335,6 +342,7 @@ export default function RegisterForm() {
                   <TextField
                     fullWidth
                     id="email"
+                    type='email'
                     label="Email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -368,6 +376,7 @@ export default function RegisterForm() {
             setPassword(e.target.value);
           }}
           type={values.showPassword ? 'text' : 'password'}
+          minLength={5} 
           endAdornment={
             <InputAdornment position="end">
               <IconButton
@@ -381,6 +390,7 @@ export default function RegisterForm() {
             </InputAdornment>
           }
           label="Password"
+          required
         />
       </FormControl>
 
@@ -404,6 +414,7 @@ export default function RegisterForm() {
             </InputAdornment>
           }
           label="Confirm Password"
+          required
         />
       </FormControl>
 

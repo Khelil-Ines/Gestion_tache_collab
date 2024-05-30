@@ -41,5 +41,8 @@ app.use('/uploads', express.static(path.join(__dirname, 'middleware', 'uploads')
 console.log(path.join(__dirname, 'uploads'));
 
 
-
+app.use((req, res, next) => {
+  console.log(req.headers);
+  next();
+});
 module.exports = app;
