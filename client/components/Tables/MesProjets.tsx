@@ -512,7 +512,7 @@ const TableOne = () => {
                 <div >
                   <label className="block text-sm font-medium text-gray-700">Project Name</label>
                   <input
-                    className="w-full rounded border bg-gray-100 px-4 py-2 mt-1"
+                    className="w-full rounded border bg-gray-100 px-4 py-2 mt-1 mb-4"
                     value={newProject.nom}
                     onChange={(e) => setNewProject({ ...newProject, nom: e.target.value })}
                     placeholder="Project Name"

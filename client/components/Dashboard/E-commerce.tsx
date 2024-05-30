@@ -114,7 +114,7 @@ const Dashboard: React.FC = () => {
     <>
       <div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-4 2xl:gap-7.5">
-          <CardDataStats title="Total Projects" total={totalProjects.toString()} rate={`${projectRate.toFixed(2)}%`} levelUp>
+          <CardDataStats title="Total Projects " total={totalProjects.toString()} rate={`  ${projectRate.toFixed(2)}%`} levelUp>
           <svg
   className="fill-primary dark:fill-white"
   width="20"
@@ -173,7 +173,7 @@ const Dashboard: React.FC = () => {
   xmlns="http://www.w3.org/2000/svg"
   fill="none"
 >
-  <circle cx="10" cy="10" r="8" stroke="#ccc" stroke-width="2" fill="none" />
+  <circle cx="10" cy="10" r="8" stroke="#ccc" strokeWidth="2" fill="none" />
   <circle cx="10" cy="2" r="2" fill="orange">
     <animateTransform
       attributeName="transform"

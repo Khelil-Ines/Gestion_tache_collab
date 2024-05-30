@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server",
+    "start": "node server --max-http-header-size=1024 start",
     "dev": "nodemon server"
   },
   "author": "Ines khelil And Aya Ghattas",

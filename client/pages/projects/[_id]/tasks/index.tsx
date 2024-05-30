@@ -316,12 +316,12 @@ const ProjectDetails: NextPage = () => {
     const daysUntilDue = dueDate.diff(currentDate, 'days');
 
     if (columnName !== "Done") {
-      if (daysUntilDue < 0) {
-        return 'green';
-      } else if (daysUntilDue === 0) {
-        return 'red';
-      } else if (daysUntilDue === 1) {
+      if (daysUntilDue === 1) {
         return 'orange';
+      } else if (daysUntilDue === 0 || daysUntilDue < 0 ) {
+        return 'red';
+      } else if (daysUntilDue > 1) {
+        return 'green';
       }
     }
 
