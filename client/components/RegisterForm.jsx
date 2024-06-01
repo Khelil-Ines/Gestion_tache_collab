@@ -24,8 +24,21 @@ export default function RegisterForm() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState("");
+  const [emailError, setEmailError] = useState(false);
+
 
   const router = useRouter();
+
+  const handleEmailChange = (e) => {
+    const newEmail = e.target.value;
+    setEmail(newEmail);
+    setEmailError(!validateEmail(newEmail));
+  };
+
+  const validateEmail = (email) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -35,6 +48,11 @@ export default function RegisterForm() {
       return;
     }
   
+    if (!validateEmail(email)) {
+      setEmailError(true);
+      return;
+    }
+
     if (password.length < 5) {
       setError("Password must be at least 5 characters long.");
       return;
@@ -345,7 +363,9 @@ export default function RegisterForm() {
                     type='email'
                     label="Email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    error={emailError}
+                    helperText={emailError ? 'Please enter a valid email address' : ''}
+                    onChange={handleEmailChange}
                   />
                   <span className="absolute right-4 top-4">
                     <svg
