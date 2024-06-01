@@ -5,6 +5,7 @@ import Breadcrumb from "../Breadcrumbs/Breadcrumb";
 import { useSession } from "next-auth/react";
 import moment, { Moment } from "moment";
 import './tooltip.css';
+import getTaskStyle from './getTaskStyle'; // Ensure correct import path
 
 interface Task {
   _id: string;
@@ -13,6 +14,7 @@ interface Task {
   responsable: string;
   createdAt: string;
   duree_maximale?: number;
+  columnName: string; // Added columnName
 }
 
 const Calendar: React.FC = () => {
@@ -28,37 +30,32 @@ const Calendar: React.FC = () => {
         const projectsResponse = await axios.get("http://localhost:5000/projects", {
           headers: { Authorization: `Bearer ${session.user.accessToken}` }
         });
-        console.log("Projects Response:", projectsResponse.data);
 
         const projects = projectsResponse.data.projects.filter((project: any) =>
           project.membres.some((member: any) => member.utilisateur === session.user._id)
         );
-        console.log("Filtered Projects:", projects);
 
         const tasks: Task[] = [];
 
         for (const project of projects) {
-          console.log("Fetching columns for project:", project._id);
           for (const columnId of project.columns) {
             const columnResponse = await axios.get(`http://localhost:5000/column/${columnId}`, {
               headers: { Authorization: `Bearer ${session.user.accessToken}` }
             });
-            console.log("Column Response:", columnResponse.data);
+            const columnName = columnResponse.data.model.nom; // Get column name
 
             for (const taskId of columnResponse.data.model.taches) {
               const taskResponse = await axios.get(`http://localhost:5000/tache/${taskId}`, {
                 headers: { Authorization: `Bearer ${session.user.accessToken}` }
               });
               const task = taskResponse.data.model;
-              console.log("Task Response:", taskResponse.data);
 
               if (task.responsable === session.user._id) {
-                tasks.push(task);
+                tasks.push({ ...task, columnName }); // Add column name to task
               }
             }
           }
         }
-        console.log("Fetched Tasks:", tasks);
         setTasks(tasks);
       } catch (error) {
         console.error("Error fetching tasks:", error);
@@ -76,7 +73,7 @@ const Calendar: React.FC = () => {
 
     return tasksForDay.map(task => {
       const taskStart = moment(task.createdAt);
-      const taskEnd = taskStart.clone().add(task.duree_maximale || 2, 'days').subtract(1, 'day'); // Adjust end day to be inclusive
+      const taskEnd = taskStart.clone().add(task.duree_maximale || 2, 'days').subtract(1, 'day');
       const taskDuration = taskEnd.diff(taskStart, 'days') + 1;
 
       return (
@@ -87,14 +84,14 @@ const Calendar: React.FC = () => {
             gridColumnEnd: `span ${taskDuration}`,
             zIndex: 1,
             width: `calc(${taskDuration} * 100%)`,
-            backgroundColor: getTaskStyle(task),
+            backgroundColor: getTaskStyle(task, task.columnName), 
             padding: '2px',
             marginBottom: '2px',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            height: '20px', // Adjust height as needed
+            height: '20px',
             overflow: 'hidden',
             whiteSpace: 'nowrap',
             textOverflow: 'ellipsis',
@@ -110,22 +107,6 @@ const Calendar: React.FC = () => {
         </div>
       );
     });
-  };
-
-  const getTaskStyle = (task: Task) => {
-    const startDate = moment(task.createdAt);
-    const endDate = moment(startDate.clone().add(task.duree_maximale || 0, 'days'));
-    const today = moment();
-
-    if (today.isAfter(endDate, 'day')) {
-      return 'green';
-    } else if (today.isSame(endDate, 'day')) {
-      return 'red';
-    } else if (today.add(1, 'day').isSame(endDate, 'day')) {
-      return 'orange';
-    } else {
-      return 'blue';
-    }
   };
 
   const renderCalendar = () => {

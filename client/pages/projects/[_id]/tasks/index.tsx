@@ -567,7 +567,7 @@ const ProjectDetails: NextPage = () => {
 
       <h2 className='mb-4'>Project's name: {project?.model.nom}</h2>
 
-      <button style={{
+      { isManager && ( <button style={{
         width: '150px',  // Set a fixed width
         height: '40px',  // Set a fixed height
         backgroundColor: 'blue',
@@ -581,7 +581,7 @@ const ProjectDetails: NextPage = () => {
         justifyContent: 'center'
       }}
         onClick={() => setShowAddMemberModal(true)}>+ Add Member</button>
-
+    )}
       {showAddMemberModal && (
         <div>
           <Select
@@ -627,9 +627,10 @@ const ProjectDetails: NextPage = () => {
                 <div ref={provided.innerRef} {...provided.droppableProps} style={{ borderRadius: '25px', margin: '8px', background: '#e2e2e2', padding: '10px', width: '250px',  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.12)' }}>
                   <div className="column-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <h2 style={{ marginLeft: '5px', fontWeight: 'bold', color: '#0A1172', fontSize: '20px' }}>{column.model.nom}</h2>
-                    <button type="button" className="btn-close" onClick={() => handleDeleteColumn(column.model._id)}>
+                    { isManager && ( <button type="button" className="btn-close" onClick={() => handleDeleteColumn(column.model._id)}>
                       <span className="icon-cross"></span>
                     </button>
+                    )}
                   </div>
                   <ul style={{ listStyle: 'none', padding: 0 }}>
                     {column.tasks.map((task, taskIndex) => (
@@ -688,13 +689,13 @@ const ProjectDetails: NextPage = () => {
                             onClose={() => setAlert({ show: false, message: '', type: '' })}
                           />
                         )}
-                        <div className="grid grid-cols-5 gap-8">
+                        <div className="grid grid-cols-5 gap-2">
                           <div className="col-span-5">
                             <div className="rounded-sm border border-stroke bg-white shadow-default">
-                              <div className="border-b border-stroke px-7 py-4">
-                                <h3>Edit Task</h3>
+                              <div className="border-b border-stroke px-5 py-3">
+                                <h4>Edit Task</h4>
                               </div>
-                              <div className="p-7">
+                              <div className="p-5">
                                 <form onSubmit={handleUpdateTask}>
                                   <input
                                     className="w-full rounded border bg-gray px-4.5 py-3 mb-5"
@@ -831,7 +832,7 @@ const ProjectDetails: NextPage = () => {
             </Droppable>
           ))}
 
-{isManager && ( // Only show the button if the user is a manager
+{isManager && ( 
   <button
     onClick={() => setIsAddingColumn(true)}
     style={{

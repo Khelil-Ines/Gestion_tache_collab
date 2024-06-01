@@ -397,7 +397,7 @@ const TableOne = () => {
         <div className="modal fixed mt-20 ml-30 inset-0 z-20 flex items-center justify-center bg-gray-800 bg-opacity-50">
           <div className="bg-white rounded-lg overflow-hidden shadow-xl transform transition-all sm:max-w-lg sm:w-full">
             <div className="border-b border-gray-200 px-4 py-2 bg-gray-50 sm:px-6">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">Edit Project</h3>
+              <h4 className="text-lg leading-6 font-medium text-gray-900">Edit Project</h4>
             </div>
             <div className="p-4 sm:p-6">
               <form onSubmit={handleUpdateProject}>
