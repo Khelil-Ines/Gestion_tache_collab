@@ -17,6 +17,8 @@ router.post('/uploadfile/:id', TacheController.uploadFile);
 router.post('/:tacheId/move/:targetColumnId', auth.loggedMiddleware,TacheController.moveTacheToColumn);
 
 router.post('/:tacheId/move/:targetColumnId', TacheController.moveTacheToColumn);
+router.delete('/:tacheId/files',  TacheController.deleteFileFromTache);
+
 
 
 

@@ -7,27 +7,27 @@ import { useSession } from "next-auth/react";
 import moment from "moment";
 
 const ChatCard = dynamic(() => import('../Chat/ChatCard'), {
-  ssr: false, // This will only render the component on the client-side
+  ssr: false, 
 });
 
 const TableOne = dynamic(() => import('../Tables/TableOne'), {
-  ssr: false, // This will only render the component on the client-side
+  ssr: false, 
 });
 
 const MapOne = dynamic(() => import('../Maps/MapOne'), {
-  ssr: false, // This will only render the component on the client-side
+  ssr: false,
 });
 
 const ChartOne = dynamic(() => import('../Charts/ChartOne'), {
-  ssr: false, // This will only render the component on the client-side
+  ssr: false, 
 });
 
 const ChartTwo = dynamic(() => import('../Charts/ChartTwo'), {
-  ssr: false, // This will only render the component on the client-side
+  ssr: false,
 });
 
 const ChartThree = dynamic(() => import('../Charts/ChartThree'), {
-  ssr: false, // This will only render the component on the client-side
+  ssr: false, 
 });
 
 const Dashboard: React.FC = () => {
@@ -46,19 +46,17 @@ const Dashboard: React.FC = () => {
       const previousMonth = moment().subtract(1, 'months').month();
       const currentMonthCount = items.filter(item => moment(item[key]).month() === currentMonth).length;
       const previousMonthCount = items.filter(item => moment(item[key]).month() === previousMonth).length;
-      if (previousMonthCount === 0) return currentMonthCount *10;
+      if (previousMonthCount === 0) return currentMonthCount * 100;
       return ((currentMonthCount - previousMonthCount) / previousMonthCount) * 100;
     };
 
     const fetchData = async () => {
       try {
-        // Fetch User Projects
         const projectsResponse = await axios.get("http://localhost:5000/projects", {
           headers: { Authorization: `Bearer ${session?.user?.accessToken}` },
         });
         const projects = projectsResponse.data.projects;
 
-        // Filter projects the user is a part of
         const userProjects = projects.filter(project => 
           project.membres.some(member => member.utilisateur === session?.user?._id)
         );
@@ -68,7 +66,6 @@ const Dashboard: React.FC = () => {
         let userTasks = [];
         let completedTaskIds = new Set();
 
-        // Fetch Columns and Tasks for each project
         const columnsPromises = userProjects.flatMap(project =>
           project.columns.map(columnId =>
             axios.get(`http://localhost:5000/column/${columnId}`)
@@ -91,14 +88,20 @@ const Dashboard: React.FC = () => {
         }
 
         setTotalTasks(userTasks.length);
-        setCompletedTasks(userTasks.filter(task => completedTaskIds.has(task._id)).length);
-        setOverdueTasks(userTasks.filter(task => {
-          const taskDueDate = moment(task.createdAt).add(task.duree_maximale, 'days');
-          return moment().isAfter(taskDueDate) && !completedTaskIds.has(task._id);
-        }).length);
-        setTasksInProgress(userTasks.length - (completedTasks + overdueTasks));
+        const completedTasksCount = userTasks.filter(task => completedTaskIds.has(task._id)).length;
+        setCompletedTasks(completedTasksCount);
 
-        // Calculate Rates
+        const overdueTasksCount = userTasks.filter(task => {
+          const taskDueDate = moment(task.createdAt).clone().add(task.duree_maximale, 'days');
+          const daysUntilDue = taskDueDate.diff(task.createdAt, 'days');
+          //return moment().isAfter(taskDueDate) && !completedTaskIds.has(task._id);
+            return (daysUntilDue  < 1 || daysUntilDue  === 1   )  && !completedTaskIds.has(task._id);
+        }).length;
+        setOverdueTasks(overdueTasksCount);
+
+        const tasksInProgressCount = userTasks.length - (completedTasksCount + overdueTasksCount);
+        setTasksInProgress(tasksInProgressCount);
+
         setProjectRate(calculateRate(userProjects, 'createdAt'));
         setTaskRate(calculateRate(userTasks, 'createdAt'));
 
@@ -164,7 +167,7 @@ const Dashboard: React.FC = () => {
     />
               </svg>
             </CardDataStats>
-            <CardDataStats title="In progress Tasks" total={tasksInProgress} levelDown>
+            <CardDataStats title="In progress Tasks" total={tasksInProgress.toString()} levelDown>
             <svg
   className="fill-primary dark:fill-white"
   width="20"

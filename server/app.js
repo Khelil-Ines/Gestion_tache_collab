@@ -1,6 +1,6 @@
 const express = require("express");
 const app = express();
-require("dotenv").config({ path: '../.env' });
+require("dotenv").config({ path: './.env' });
 const mongoose = require("mongoose");
 const userRouter=require("./routers/user")
 const projectRouter=require("./routers/project")

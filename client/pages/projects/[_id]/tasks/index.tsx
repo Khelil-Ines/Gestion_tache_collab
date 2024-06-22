@@ -9,29 +9,27 @@ import { useSession } from 'next-auth/react';
 import CustomAlerts from '@/components/CustomAlerts';
 import '@/css/delete.scss';
 import Select from 'react-select';
-import { SingleValue } from 'react-select'; // Ensure you import the necessary parts from react-select
-import RootLayout from '@/app/layout';
-import { BorderAllRounded } from '@mui/icons-material';
+import { SingleValue } from 'react-select'; 
 import moment from 'moment';
-import { getSession } from 'next-auth/react'; // Import getSession from next-auth
-
+import { getSession } from 'next-auth/react'; 
 
 interface Task {
   id: string;
-  name: string;
-  responsable: string; // This holds the ID of the user responsible for the task
-  responsableDetails?: { // Optional field to store user details
+  nom: string;
+  responsable: string; 
+  responsableDetails?: { 
     nom: string;
     photo: string;
   };
   createdAt: string;
   duree_maximale: number;
+  files: string[];
 }
 
 interface Column {
   id: string;
-  name: string;
-  tasks: Task[];
+  nom: string;
+  taches: Task[];
   isAddingTask: boolean;
   newTaskName: string;
   selectedUserId: string;
@@ -39,7 +37,7 @@ interface Column {
 
 interface Project {
   id: string;
-  name: string;
+  nom: string;
   columns: Column[];
 }
 
@@ -64,20 +62,19 @@ const ProjectDetails: NextPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [alert, setAlert] = useState({ show: false, message: '', type: '' });
   const [newColumnName, setNewColumnName] = useState('');
-  const [isAddingColumn, setIsAddingColumn] = useState(false); // To handle form visibility
+  const [isAddingColumn, setIsAddingColumn] = useState(false); 
   const [currentColumnId, setCurrentColumnId] = useState(null);
   const [selectedUser, setSelectedUser] = useState('');
   const [newTaskName, setNewTaskName] = useState('');
-  const [newTaskDureeMaximale, setNewTaskDureeMaximale] = useState(2); // Default to 2 days if not provided
-  const [users, setUsers] = useState<User[]>([]); // Users state
+  const [newTaskDureeMaximale, setNewTaskDureeMaximale] = useState(2); 
+  const [users, setUsers] = useState<User[]>([]); 
   const [allUsers, setAllUsers] = useState([]);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
-  const [file, setFile] = useState(null); // To hold the file object
-  const [fileURL, setFileURL] = useState(''); // To store the URL of the uploaded file
+  const [file, setFile] = useState(null); 
+  const [fileURL, setFileURL] = useState(''); 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [isManager, setIsManager] = useState(false);
-
 
   const roles = [
     { id: 1, name: "Collaborator" },
@@ -91,7 +88,6 @@ const ProjectDetails: NextPage = () => {
   }));
   const [selectedRole, setSelectedRole] = useState<SingleValue<RoleOption>>(null);
 
-  // Handle change for the Select component
   const handleRoleChange = (option: SingleValue<RoleOption>) => {
     setSelectedRole(option);
   };
@@ -107,7 +103,7 @@ const ProjectDetails: NextPage = () => {
       },
         {
           headers: {
-            'Authorization': `Bearer ${session?.user?.accessToken}`, // Assume session.accessToken is available
+            'Authorization': `Bearer ${session?.user?.accessToken}`, 
         },
       });
       console.log('Member added successfully:', response.data);
@@ -126,7 +122,6 @@ const ProjectDetails: NextPage = () => {
     }
   };
 
-  // This function handles the file upload
   const handleFileUpload = async (e) => {
     e.preventDefault();
     if (!file) {
@@ -135,23 +130,24 @@ const ProjectDetails: NextPage = () => {
     }
 
     const formData = new FormData();
-    formData.append('file', file); // Append the file
+    formData.append('file', file); 
 
     try {
       const response = await axios.post(`http://localhost:5000/tache/uploadfile/${selectedTask?._id}`, formData, {
         headers: {
-          'Authorization': `Bearer ${session.accessToken}`, // Assume session.accessToken is available
+          'Authorization': `Bearer ${session.accessToken}`, 
         },
       });
 
       if (response.status === 200) {
         const files = response.data.model.file;
         if (files && files.length > 0) {
-          const lastFilePath = files[files.length - 1]; // Get the last file path
+          const lastFilePath = files[files.length - 1]; 
           const newTaskFileUrl = `http://localhost:5000/${lastFilePath.replace(/\\/g, '/')}`;
           setFileURL(newTaskFileUrl);
           console.log("File upload successful:", newTaskFileUrl);
           setAlert({ show: true, message: 'File uploaded successfully.', type: 'success' });
+          await fetchColumns(); // Refresh the columns to get the updated task with the new file
         }
       } else {
         setAlert({ show: true, message: 'Failed to upload file.', type: 'error' });
@@ -162,20 +158,55 @@ const ProjectDetails: NextPage = () => {
     }
   };
 
+  const normalizeFileUrlForBackend = (url) => {
+    // Assuming the URL you receive is like "http://localhost:5000/uploads/file-name.pdf"
+    // and you need to extract "uploads/file-name.pdf"
+    const urlParts = url.split('/');
+    const indexOfUploads = urlParts.indexOf('uploads');
+    return urlParts.slice(indexOfUploads).join('/');
+  };
+  
+  const handleFileDelete = async (taskId, fileUrl) => {
+    const normalizedFileUrl = normalizeFileUrlForBackend(fileUrl);
+  
+    try {
+      const response = await axios.delete(`http://localhost:5000/tache/${taskId}/files`, {
+        headers: {
+          'Authorization': `Bearer ${session.accessToken}`,
+        },
+        data: {
+          data: normalizedFileUrl // Pass the normalized URL
+        }
+      });
+  
+      if (response.status === 200) {
+        console.log("File deleted successfully:", response.data);
+        setAlert({ show: true, message: 'File deleted successfully.', type: 'success' });
+        // Update the state to remove the file from the UI
+        await fetchColumns(); // Refresh the columns to reflect the file deletion
+      } else {
+        setAlert({ show: true, message: 'Failed to delete file.', type: 'error' });
+      }
+    } catch (error) {
+      setError('An error occurred during file deletion.');
+      console.error("File deletion error:", error);
+    }
+  };
+  
+
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]); // Update the state with the selected file
+      setFile(e.target.files[0]); 
     } else {
       setAlert({ show: true, message: "No file selected.", type: 'error' });
     }
   };
 
-  // Function to open modal with task data
   const handleTaskClick = (task) => {
     if (session?.user?._id === task.responsable) {
       setSelectedTask({
         ...task,
-        responsable: task.responsable || users[0]?._id // Set to first user if none is set
+        responsable: task.responsable || users[0]?._id 
       });
       setIsModalOpen(true);
     } else {
@@ -183,13 +214,11 @@ const ProjectDetails: NextPage = () => {
     }
   };
 
-  // Function to close modal
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedTask(null);
   };
 
-  // Function to handle task updates
   const handleUpdateTask = async (e) => {
     e.preventDefault();
     try {
@@ -200,8 +229,8 @@ const ProjectDetails: NextPage = () => {
         duree_maximale: selectedTask?.duree_maximale
       });
       console.log('Task updated successfully:', response.data);
-      await fetchColumns(); // Refresh data
-      closeModal(); // Close modal after update
+      await fetchColumns(); 
+      closeModal(); 
     } catch (error) {
       console.error('Failed to update task:', error);
     }
@@ -209,9 +238,9 @@ const ProjectDetails: NextPage = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/getU'); // Make sure the URL is correct
+      const response = await axios.get('http://localhost:5000/getU'); 
       console.log('Users fetched:', response.data.model);
-      setAllUsers(response.data.model); // Assuming the response data is the array of users
+      setAllUsers(response.data.model); 
     } catch (error) {
       console.error('Failed to fetch users:', error);
     }
@@ -242,7 +271,7 @@ const ProjectDetails: NextPage = () => {
   };
 
   const handleAddTask = async () => {
-    console.log('Adding task for user ID:', selectedUser); // Ensure this is not undefined
+    console.log('Adding task for user ID:', selectedUser); 
 
     if (!currentColumnId || !selectedUser) {
       console.log('Selected user:', selectedUser);
@@ -257,10 +286,10 @@ const ProjectDetails: NextPage = () => {
         duree_maximale: newTaskDureeMaximale
       });
       console.log('Task added successfully:', response.data);
-      // Update your UI or fetch new data as needed
-      await fetchColumns();  // Make sure to implement this function to refresh your local state
+
+      await fetchColumns();  
       setNewTaskName('');
-      setNewTaskDureeMaximale(2); // Reset to default value
+      setNewTaskDureeMaximale(2); 
       setAlert({ show: true, message: 'Task added successfully !', type: 'success' });
     } catch (error) {
       setAlert({ show: true, message: 'Failed to add task. Please Fill All Fields', type: 'error' });
@@ -271,11 +300,10 @@ const ProjectDetails: NextPage = () => {
 
   const deleteTask = async (columnId, taskId) => {
     try {
-      // API call to delete the task
       const response = await axios.delete(`http://localhost:5000/tache/${taskId}`);
       if (response.status === 200) {
         console.log('Task deleted successfully');
-        // Remove the task from columns state without needing to refetch all columns
+
         const updatedColumns = columns.map(column => {
           if (column._id === columnId) {
             return {
@@ -311,7 +339,7 @@ const ProjectDetails: NextPage = () => {
   const getTaskBarColor = (task, columnName) => {
     const taskCreatedAt = moment(task.createdAt);
     const currentDate = moment();
-    const dureeMaximale = task.duree_maximale || 2; // Default to 2 if not provided
+    const dureeMaximale = task.duree_maximale || 2; 
     const dueDate = taskCreatedAt.clone().add(dureeMaximale, 'days');
     const daysUntilDue = dueDate.diff(currentDate, 'days');
 
@@ -328,11 +356,10 @@ const ProjectDetails: NextPage = () => {
     return 'green';
   };
 
-  // Function to fetch columns
   const fetchColumns = async () => {
     if (!_id) {
       console.log('Project ID is undefined');
-      return; // Avoid making a request if the project ID is not defined
+      return;
     }
 
     try {
@@ -351,7 +378,6 @@ const ProjectDetails: NextPage = () => {
             const taskResponse = await axios.get<Task>(`http://localhost:5000/tache/${taskId}`);
             const task = taskResponse.data.model;
 
-            // Fetch user details for the responsable
             let responsableDetails = null;
             if (task.responsable) {
               try {
@@ -359,20 +385,21 @@ const ProjectDetails: NextPage = () => {
                 const user = userResponse.data.model;
                 responsableDetails = {
                   nom: user.firstname,
-                  photo: formatPhotoUrl(user.photo) // Make sure your user model has a 'photo' field
+                  photo: formatPhotoUrl(user.photo) 
                 };
               } catch (userError) {
                 console.error(`Error fetching user details for task ${task.id}:`, userError.message);
                 responsableDetails = {
                   nom: 'Unknown',
-                  photoUrl: 'middleware/uploads/unknown.png' // Default image path in case of an error
+                  photoUrl: 'middleware/uploads/unknown.png' 
                 };
               }
             }
 
             return {
               ...task,
-              responsableDetails // Add responsible details to the task object
+              responsableDetails,
+              files: task.file ? task.file.map(filePath => `http://localhost:5000/${filePath.replace(/\\/g, '/')}`) : []
             };
           }));
 
@@ -390,18 +417,18 @@ const ProjectDetails: NextPage = () => {
       }
     } catch (error) {
       console.error(`Error fetching project: ${error.message}`);
-      // Handle network or server errors here
+      
     }
   };
 
   useEffect(() => {
     fetchColumns();
-  }, [_id]); // Fetch columns whenever _id changes
+  }, [_id]); 
 
   useEffect(() => {
     const fetchProjectDetails = async () => {
       if (!_id || typeof _id !== 'string') return;
-      const session = await getSession(); // Fetch the session explicitly
+      const session = await getSession(); 
 
       try {
         const projectResponse = await axios.get<Project>(`http://localhost:5000/project/${_id}`);
@@ -414,8 +441,8 @@ const ProjectDetails: NextPage = () => {
           role: member.role,
           photo: `http://localhost:5000/${member.utilisateur.photo.replace(/\\/g, '/')}`
         }));
-        console.log("memberDetails:", memberDetails); // Log member details
-        console.log("session.user._id:", session?.user?._id); // Log current user's ID
+        console.log("memberDetails:", memberDetails); 
+        console.log("session.user._id:", session?.user?._id); 
         setUsers(memberDetails);
         const columnsPromises = projectResponse.data.model.columns.map(columnId =>
           axios.get<Column>(`http://localhost:5000/column/${columnId}`)
@@ -451,26 +478,23 @@ const ProjectDetails: NextPage = () => {
     fetchProjectDetails();
   }, [_id]);
   
-
   const onDragEnd = async (result) => {
     const { source, destination, draggableId } = result;
 
-    // Do nothing if the task is dropped outside any column
     if (!destination) {
       return;
     }
 
-    // API call to move the task
     try {
       const response = await axios.post(`http://localhost:5000/tache/${draggableId}/move/${destination.droppableId}`, {}, {
         headers: {
-          'Authorization': `Bearer ${session.accessToken}` // Assuming the token is stored in the session state
+          'Authorization': `Bearer ${session.accessToken}` 
         }
       });
 
-      console.log(typeof session?.user?._id, typeof response.data.tache.responsable);  // Check data types
+      console.log(typeof session?.user?._id, typeof response.data.tache.responsable);  
 
-      console.log('Session User ID:', session?.user?._id);  // Log user ID from session
+      console.log('Session User ID:', session?.user?._id); 
       console.log('Task Responsable ID:', response.data.tache.responsable);
       if (session?.user?._id !== response.data.tache.responsable) {
         console.error('Failed to move the task, not authorized :', response.data.error);
@@ -478,27 +502,27 @@ const ProjectDetails: NextPage = () => {
       }
       if (response.status === 200) {
         console.log('Task moved successfully:', response.data);
-        // Fetch new columns data or adjust the local state optimistically
-        await fetchColumns();  // Make sure to implement this function to refresh your local state
+
+        await fetchColumns();  
       } else {
-        // Handle any errors returned by the server, e.g., task or column not found
+
         console.error('Failed to move the task:', response.data.error);
       }
     } catch (error: unknown) {
       console.error('Error moving task:', error);
 
       if (axios.isAxiosError(error)) {
-        // Error is an AxiosError
+
         if (error.response?.status === 404) {
           setAlert({ show: true, message: 'You are not authorized to move this task.', type: 'error' });
         } else {
-          setAlert({ show: true, message: error.message, type: 'error' }); // error.message is always a string
+          setAlert({ show: true, message: error.message, type: 'error' }); 
         }
       } else if (error instanceof Error) {
-        // Error is a generic JavaScript Error
+
         setAlert({ show: true, message: error.message, type: 'error' });
       } else {
-        // Error is of unknown type
+
         setAlert({ show: true, message: 'An unexpected error occurred.', type: 'error' });
       }
     }
@@ -506,19 +530,19 @@ const ProjectDetails: NextPage = () => {
 
   const handleAddColumn = async () => {
     const columnData = {
-      name: "New Column", // Example name, consider using a prompt or form
-      tasks: [], // Assuming new columns start empty
+      name: "New Column", 
+      tasks: [], 
     };
 
     try {
       const response = await axios.post(`http://localhost:5000/column/add/${_id}`, { nom: newColumnName }, {
         headers: {
-          'Authorization': `Bearer ${session.accessToken}` // Assuming token based auth
+          'Authorization': `Bearer ${session.accessToken}` 
       }
       });
       if (response.status === 200) {
         setNewColumnName('');
-        await fetchColumns(); // Reload columns to reflect the new column
+        await fetchColumns(); 
         console.log('Column added successfully:', response.data);
         setIsAddingColumn(false);
       } else {
@@ -540,7 +564,7 @@ const ProjectDetails: NextPage = () => {
         });
         if (response.status === 200) {
           setAlert({ show: true, message: 'Column deleted successfully!', type: 'success' });
-          await fetchColumns(); // Refresh columns to reflect the deletion
+          await fetchColumns();
         } else {
           throw new Error('Failed to delete column');
         }
@@ -568,8 +592,8 @@ const ProjectDetails: NextPage = () => {
       <h2 className='mb-4'>Project's name: {project?.model.nom}</h2>
 
       { isManager && ( <button style={{
-        width: '150px',  // Set a fixed width
-        height: '40px',  // Set a fixed height
+        width: '150px',  
+        height: '40px',  
         backgroundColor: 'blue',
         color: 'white',
         borderRadius: '5px',
@@ -594,8 +618,8 @@ const ProjectDetails: NextPage = () => {
             value={selectedRole}
             onChange={handleRoleChange}
             placeholder="Select a role"
-            className="my-react-select-container" // Apply custom styles or use className for predefined styles
-            classNamePrefix="my-react-select" // Helps with customizing all parts of the dropdown
+            className="my-react-select-container" 
+            classNamePrefix="my-react-select" 
           />
           <button style={{
             backgroundColor: 'green',
@@ -657,6 +681,35 @@ const ProjectDetails: NextPage = () => {
                               borderRadius: '2px',
                               marginTop: '5px'
                             }}></div>
+                            <div>
+                              {task.files && task.files.length > 0 && (
+                                <div>
+                                  {task.files.map((fileUrl, fileIndex) => (
+                                    <div key={fileIndex} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                      <a href={fileUrl} target="_blank" rel="noopener noreferrer">
+                                        View File {fileIndex + 1}
+                                      </a>
+                                      <button
+                                        style={{
+                                         
+                                          color: 'red',
+                                          border: 'none',
+                                          borderRadius: '4px',
+                                          padding: '2px 6px',
+                                          cursor: 'pointer'
+                                        }}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleFileDelete(task._id, fileUrl);
+                                        }}
+                                      >
+                                        x
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                             <button
                               style={{
                                 position: 'absolute',
@@ -674,7 +727,7 @@ const ProjectDetails: NextPage = () => {
                                 cursor: 'pointer'
                               }}
                             >
-                              X
+                              x
                             </button>
                           </li>
                         )}
@@ -750,6 +803,38 @@ const ProjectDetails: NextPage = () => {
                                     <button type="button" onClick={() => deleteTask(currentColumnId, selectedTask._id)} className="bg-red text-white px-6 py-2">Supprimer</button>
                                   </div>
                                 </form>
+                                <div className="mt-4">
+                                  <h5>Files:</h5>
+                                  {selectedTask.files && selectedTask.files.length > 0 ? (
+                                    <div>
+                                      {selectedTask.files.map((fileUrl, index) => (
+                                        <div key={index} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                          <a href={fileUrl} target="_blank" rel="noopener noreferrer">
+                                            View File {index + 1}
+                                          </a>
+                                          <button
+                                            style={{
+                                              backgroundColor: 'red',
+                                              color: 'white',
+                                              border: 'none',
+                                              borderRadius: '4px',
+                                              padding: '2px 6px',
+                                              cursor: 'pointer'
+                                            }}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleFileDelete(selectedTask._id, fileUrl);
+                                            }}
+                                          >
+                                            x
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p>No files uploaded.</p>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -772,13 +857,13 @@ const ProjectDetails: NextPage = () => {
                         <div className="add-task-form mb-4 border px-2 py-2 mr-4 bg-blue-100" style={{ borderRadius: 20 }}>
                           <input
                             style={{
-                              width: '100%', // Full width
-                              padding: '8px 10px', // Comfortable padding
-                              fontFamily: 'Arial, sans-serif', // Font family for consistency
-                              border: '1px solid #ccc', // Subtle border
-                              borderRadius: '4px', // Rounded corners
-                              backgroundColor: '#fff', // White background
-                              color: '#333', // Text color
+                              width: '100%', 
+                              padding: '8px 10px', 
+                              fontFamily: 'Arial, sans-serif', 
+                              border: '1px solid #ccc', 
+                              borderRadius: '4px', 
+                              backgroundColor: '#fff', 
+                              color: '#333', 
                             }}
                             type="text"
                             placeholder="Task name"
@@ -788,14 +873,14 @@ const ProjectDetails: NextPage = () => {
                           />
                           <input
                             style={{
-                              width: '100%', // Full width
-                              padding: '8px 10px', // Comfortable padding
-                              fontFamily: 'Arial, sans-serif', // Font family for consistency
-                              border: '1px solid #ccc', // Subtle border
-                              borderRadius: '4px', // Rounded corners
-                              backgroundColor: '#fff', // White background
-                              color: '#333', // Text color
-                              marginBottom: '10px', // Space at the bottom
+                              width: '100%', 
+                              padding: '8px 10px', 
+                              fontFamily: 'Arial, sans-serif', 
+                              border: '1px solid #ccc', 
+                              borderRadius: '4px', 
+                              backgroundColor: '#fff',
+                              color: '#333', 
+                              marginBottom: '10px', 
                             }}
                             type="number"
                             placeholder="Max duration (days)"
@@ -831,26 +916,25 @@ const ProjectDetails: NextPage = () => {
               )}
             </Droppable>
           ))}
-
-{isManager && ( 
-  <button
-    onClick={() => setIsAddingColumn(true)}
-    style={{
-      width: '150px',  // Set a fixed width
-      height: '40px',  // Set a fixed height
-      backgroundColor: 'blue',
-      color: 'white',
-      borderRadius: '5px',
-      border: 'none',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    }}
-  >
-    + New Column
-  </button>
-)}
+          {isManager && ( 
+            <button
+              onClick={() => setIsAddingColumn(true)}
+              style={{
+                width: '150px',  
+                height: '40px',  
+                backgroundColor: 'blue',
+                color: 'white',
+                borderRadius: '5px',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              + New Column
+            </button>
+          )}
           {isAddingColumn && (
             <div className="my-4">
               <input
