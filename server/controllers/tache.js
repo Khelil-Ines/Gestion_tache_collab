@@ -399,6 +399,27 @@ const moveTacheToColumn = async (req, res) => {
   }
 };
 
+const deleteFileFromTache = async (req, res) => {
+  const { tacheId } = req.params;
+  const  fileUrl  = req.body.data; 
+
+  try {
+    const tache = await Tache.findById(tacheId);
+    if (!tache) {
+      return res.status(404).json({ error: 'Tâche non trouvée' });
+    }
+   
+
+    tache.file = tache.file.filter(file => file !== fileUrl);
+    await tache.save();
+
+    res.status(200).json({ message: 'Fichier supprimé avec succès de la tâche', model: tache });
+  } catch (error) {
+    console.error('Erreur lors de la suppression du fichier :', error);
+    res.status(500).json({ error: 'Erreur lors de la suppression du fichier', message: error.message });
+  }
+};
+
 
 
 
@@ -410,4 +431,5 @@ const moveTacheToColumn = async (req, res) => {
     deleteTache,
     uploadFile,
     moveTacheToColumn,
+    deleteFileFromTache,
     }

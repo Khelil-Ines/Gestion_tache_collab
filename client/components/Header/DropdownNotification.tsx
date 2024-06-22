@@ -25,7 +25,6 @@ const DropdownNotification = () => {
 
         setNotifications(fetchedNotifications.sort((a, b) => new Date(b.date) - new Date(a.date)));
 
-        // Check for unread notifications
         const hasUnreadNotifications = fetchedNotifications.some(notif => !notif.read);
         setNotifying(hasUnreadNotifications);
 
@@ -36,7 +35,7 @@ const DropdownNotification = () => {
     };
 
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 6000); // Refresh every minute
+    const interval = setInterval(fetchNotifications, 6000); 
     return () => clearInterval(interval);
   }, [session]);
 
@@ -76,7 +75,7 @@ const DropdownNotification = () => {
       setNotifications(prevNotifications =>
         prevNotifications.map(notification => ({ ...notification, read: true }))
       );
-      setNotifying(false); // Reset notifying state after marking as read
+      setNotifying(false); 
     } catch (error) {
       console.error('Error marking notifications as read:', error);
     }
